@@ -35,7 +35,6 @@ dependencies:
   flame_forge2d: ^0.19.2+4
   flutter:
     sdk: flutter
-  flutter_nearby_connections: ^1.1.2
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
