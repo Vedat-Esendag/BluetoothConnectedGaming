@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 void main() {
   _registerGames();
-  runApp(const PocketArcadeApp());
+  runApp(const BluetoothConnectedGamingApp());
 }
 
 void _registerGames() {
@@ -12,27 +12,27 @@ void _registerGames() {
   // Register additional mini-games here — one line each.
 }
 
-class PocketArcadeApp extends StatelessWidget {
-  const PocketArcadeApp({super.key});
+class BluetoothConnectedGamingApp extends StatelessWidget {
+  const BluetoothConnectedGamingApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pocket Arcade',
+      title: '<DISPLAY NAME>',
       theme: ThemeData.dark(useMaterial3: true),
-      home: const ArcadeHome(),
+      home: const BluetoothConnectedGamingHome(),
     );
   }
 }
 
-class ArcadeHome extends StatelessWidget {
-  const ArcadeHome({super.key});
+class BluetoothConnectedGamingHome extends StatelessWidget {
+  const BluetoothConnectedGamingHome({super.key});
 
   @override
   Widget build(BuildContext context) {
     final games = MiniGameRegistry.instance.games;
     return Scaffold(
-      appBar: AppBar(title: const Text('Pocket Arcade')),
+      appBar: AppBar(title: const Text('<DISPLAY NAME>')),
       body: ListView.builder(
         itemCount: games.length,
         itemBuilder: (context, i) {

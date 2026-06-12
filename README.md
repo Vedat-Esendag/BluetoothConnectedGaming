@@ -1,16 +1,14 @@
-# Pocket Arcade
+# <DISPLAY NAME>
 
 > A collection of bite-sized mini-games you play **together, offline, over Bluetooth**. Pull out two phones, pick a game, and play — pool, and more to come.
 
-[![CI](https://github.com/USERNAME/pocket-arcade/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/pocket-arcade/actions/workflows/ci.yml)
+[![CI](https://github.com/Vedat-Esendag/BluetoothConnectedGaming/actions/workflows/ci.yml/badge.svg)](https://github.com/Vedat-Esendag/BluetoothConnectedGaming/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Flutter](https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter)
 
-> Replace `USERNAME` above and rename the project once your repo exists.
-
 ## What this is
 
-Pocket Arcade is a single Flutter app that hosts **many independent mini-games** behind one shared interface. Two players on the same Wi-Fi/Bluetooth range connect device-to-device — no server, no internet, no accounts. The first game is **Pool** (real ball physics via forge2d).
+<DISPLAY NAME> is a single Flutter app that hosts **many independent mini-games** behind one shared interface. Two players on the same Wi-Fi/Bluetooth range connect device-to-device — no server, no internet, no accounts. The first game is **Pool** (real ball physics via forge2d).
 
 ## Architecture in one paragraph
 
