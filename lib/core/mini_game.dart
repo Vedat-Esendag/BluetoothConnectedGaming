@@ -1,12 +1,11 @@
+import 'package:bluetooth_connected_gaming/core/peer_transport.dart';
 import 'package:flutter/widgets.dart';
-
-import 'peer_transport.dart';
 
 /// Identity + entry point for a single mini-game.
 ///
 /// Every mini-game lives in its own module under `lib/games/<id>/` and exposes
 /// exactly one [MiniGameDescriptor]. The shell discovers games through
-/// [MiniGameRegistry] and never imports a game's internals — this keeps "many
+/// `MiniGameRegistry` and never imports a game's internals — this keeps "many
 /// mini-games" additive instead of entangled.
 abstract class MiniGameDescriptor {
   /// Stable, unique, lowercase id (e.g. `pool`). Used for routing.

@@ -1,4 +1,4 @@
-import 'mini_game.dart';
+import 'package:bluetooth_connected_gaming/core/mini_game.dart';
 
 /// Append-only registry of mini-games. Each game registers its descriptor here
 /// (in `main.dart` bootstrap). The shell reads this and nothing else, so adding

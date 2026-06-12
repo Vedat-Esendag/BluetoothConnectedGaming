@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:bluetooth_connected_gaming/core/peer_message.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('PeerMessage.fromWire — never trust the peer', () {
