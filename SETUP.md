@@ -5,26 +5,27 @@ architecture). You create the Flutter project first, then drop these files on
 top. Commands assume macOS/Linux and that the Flutter SDK and `git` are
 installed. `gh` (GitHub CLI) is optional but used below.
 
-Throughout, the project is called `pocket_arcade`. If you rename it, the package
-name in `pubspec.yaml` and the `package:pocket_arcade/...` imports must match.
+Throughout, the package is `bluetooth_connected_gaming` — used for the
+`pubspec.yaml` `name:` and every `package:bluetooth_connected_gaming/...` import.
+The product itself is referred to by its display name, `<DISPLAY NAME>`.
 
 ## 1. Create the Flutter project
 ```bash
-flutter create --org com.YOURNAME --project-name pocket_arcade pocket_arcade
-cd pocket_arcade
+flutter create --org com.YOURNAME --project-name bluetooth_connected_gaming bluetooth_connected_gaming
+cd bluetooth_connected_gaming
 ```
 
 ## 2. Overlay this scaffold
 Unzip the scaffold somewhere, then copy it in (the trailing `/.` copies dotfiles
 and preserves the hook scripts' executable bit):
 ```bash
-cp -a /path/to/pocket_arcade-scaffold/. .
+cp -a /path/to/bluetooth_connected_gaming-scaffold/. .
 ```
 This overwrites the default `lib/main.dart` with the arcade shell — expected.
 
 ## 3. Add dependencies
 ```bash
-flutter pub add flame flame_forge2d flutter_nearby_connections equatable
+flutter pub add flame flame_forge2d flutter_nearby_connections
 flutter pub add dev:very_good_analysis dev:mocktail
 flutter pub get
 ```
@@ -49,18 +50,18 @@ validation works.
 ```bash
 git init
 git add .
-git commit -m "chore: scaffold Pocket Arcade (architecture, CI, agents, hooks, ADRs)"
+git commit -m "chore: scaffold <DISPLAY NAME> (architecture, CI, agents, hooks, ADRs)"
 ```
 
 ## 7. Create the GitHub repo and push
 ```bash
 # with GitHub CLI:
-gh repo create pocket-arcade --private --source=. --remote=origin --push
+gh repo create BluetoothConnectedGaming --private --source=. --remote=origin --push
 # or create it in the web UI, then:
-# git remote add origin git@github.com:YOURNAME/pocket-arcade.git
+# git remote add origin git@github.com:Vedat-Esendag/BluetoothConnectedGaming.git
 # git push -u origin main
 ```
-Then in README.md, replace `USERNAME` in the badge URLs.
+The README badges already point at `Vedat-Esendag/BluetoothConnectedGaming`.
 
 ## 8. Turn on the GitHub guardrails
 - **Branch protection** (Settings → Branches → add rule for `main`): require a PR
