@@ -25,7 +25,7 @@ This overwrites the default `lib/main.dart` with the arcade shell — expected.
 
 ## 3. Add dependencies
 ```bash
-flutter pub add flame flame_forge2d flutter_nearby_connections
+flutter pub add flame flame_forge2d
 flutter pub add dev:very_good_analysis dev:mocktail
 flutter pub get
 ```
