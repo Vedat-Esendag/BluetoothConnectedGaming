@@ -1,0 +1,97 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter test
+
+## exception
+
+ShaderCompilerException: ShaderCompilerException: Shader compilation of "/opt/homebrew/share/flutter/packages/flutter/lib/src/material/shaders/stretch_effect.frag" to "build/unit_test_assets/shaders/stretch_effect.frag" failed with exit code -9.
+impellerc stdout:
+
+impellerc stderr:
+
+
+
+
+```
+#0      ShaderCompiler.compileShader (package:flutter_tools/src/build_system/tools/shader_compiler.dart:196:9)
+<asynchronous suspension>
+#1      writeBundle.<anonymous closure> (package:flutter_tools/src/bundle_builder.dart:208:25)
+<asynchronous suspension>
+#2      Future.wait.<anonymous closure> (dart:async/future.dart:546:21)
+<asynchronous suspension>
+#3      writeBundle (package:flutter_tools/src/bundle_builder.dart:171:3)
+<asynchronous suspension>
+#4      TestCommand._buildTestAsset (package:flutter_tools/src/commands/test.dart:777:7)
+<asynchronous suspension>
+#5      TestCommand.runCommand (package:flutter_tools/src/commands/test.dart:474:7)
+<asynchronous suspension>
+#6      FlutterCommand.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command.dart:1559:27)
+<asynchronous suspension>
+#7      AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#8      CommandRunner.runCommand (package:args/command_runner.dart:212:13)
+<asynchronous suspension>
+#9      FlutterCommandRunner.runCommand.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:487:9)
+<asynchronous suspension>
+#10     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#11     FlutterCommandRunner.runCommand (package:flutter_tools/src/runner/flutter_command_runner.dart:422:5)
+<asynchronous suspension>
+#12     run.<anonymous closure>.<anonymous closure> (package:flutter_tools/runner.dart:104:11)
+<asynchronous suspension>
+#13     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#14     main (package:flutter_tools/executable.dart:103:3)
+<asynchronous suspension>
+```
+
+## flutter doctor
+
+```
+[33m[!][39m Flutter (Channel stable, 3.38.3, on macOS 26.5.1 25F80 darwin-arm64, locale en-US) [2.7s]
+    [32m•[39m Flutter version 3.38.3 on channel stable at /opt/homebrew/share/flutter
+    [33m![39m Warning: `dart` on your path resolves to /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart, which is not inside your current Flutter SDK checkout at /opt/homebrew/share/flutter. Consider adding
+      /opt/homebrew/share/flutter/bin to the front of your path.
+    [32m•[39m Upstream repository https://github.com/flutter/flutter.git
+    [32m•[39m Framework revision 19074d12f7 (7 months ago), 2025-11-20 17:53:13 -0500
+    [32m•[39m Engine revision 13e658725d
+    [32m•[39m Dart version 3.10.1
+    [32m•[39m DevTools version 2.51.1
+    [32m•[39m Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, omit-legacy-version-file, enable-lldb-debugging
+    [32m•[39m If those were intentional, you can disregard the above warnings; however it is recommended to use "git" directly to perform update checks and upgrades.
+
+[31m[✗][39m Android toolchain - develop for Android devices [502ms]
+    [31m✗[39m Unable to locate Android SDK.
+      Install Android Studio from: https://developer.android.com/studio/index.html
+      On first launch it will assist you in installing the Android SDK components.
+      (or visit https://flutter.dev/to/macos-android-setup for detailed instructions).
+      If the Android SDK has been installed to a custom location, please use
+      `flutter config --android-sdk` to update to that location.
+
+
+[33m[!][39m Xcode - develop for iOS and macOS (Xcode 26.5) [1,580ms]
+    [32m•[39m Xcode at /Applications/Xcode.app/Contents/Developer
+    [32m•[39m Build 17F42
+    [31m✗[39m CocoaPods installed but not working.
+        You appear to have CocoaPods installed but it is not working.
+        This can happen if the version of Ruby that CocoaPods was installed with is different from the one being used to invoke it.
+        This can usually be fixed by re-installing CocoaPods.
+      For re-installation instructions, see https://guides.cocoapods.org/using/getting-started.html#installation
+
+[32m[✓][39m Chrome - develop for the web [4ms]
+    [32m•[39m Chrome at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+[32m[✓][39m Connected device (2 available) [6.6s]
+    [32m•[39m macOS (desktop) • macos  • darwin-arm64   • macOS 26.5.1 25F80 darwin-arm64
+    [32m•[39m Chrome (web)    • chrome • web-javascript • Google Chrome 149.0.7827.103
+    [33m![39m Error: Browsing on the local area network for iPhone 14. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+      The device must be opted into Developer Mode to connect wirelessly. (code -27)
+
+[32m[✓][39m Network resources [585ms]
+    [32m•[39m All expected network resources are available.
+
+[33m![39m Doctor found issues in 3 categories.
+```

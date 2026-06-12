@@ -1,0 +1,17 @@
+# Strict, professional lint baseline.
+# Requires: dev_dependencies: very_good_analysis (added in SETUP.md).
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+  language:
+    strict-casts: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    # Relax a couple of very_good rules that are noisy for a game UI; tune to taste.
+    public_member_api_docs: false
+    lines_longer_than_80_chars: false
