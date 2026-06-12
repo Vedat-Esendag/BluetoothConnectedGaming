@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'peer_message.dart';
+import 'package:bluetooth_connected_gaming/core/peer_message.dart';
 
 /// Role of a device within a local session.
 enum PeerRole { host, client }

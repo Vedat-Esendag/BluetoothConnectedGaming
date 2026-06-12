@@ -45,6 +45,9 @@ class PeerMessage {
 
   /// Parse and validate a raw inbound frame. Throws [PeerMessageError] on any
   /// problem. Never returns a partially-trusted object.
+  // Kept as a static validation entry point, not a named constructor: this is
+  // the security boundary (CLAUDE.md rule #2) and reads as parse-then-trust.
+  // ignore: prefer_constructors_over_static_methods
   static PeerMessage fromWire(List<int> bytes) {
     if (bytes.length > maxFrameBytes) {
       throw const PeerMessageError('frame exceeds max size');

@@ -1,8 +1,6 @@
+import 'package:bluetooth_connected_gaming/core/mini_game_registry.dart';
+import 'package:bluetooth_connected_gaming/games/pool/pool_descriptor.dart';
 import 'package:flutter/material.dart';
-
-import 'core/mini_game.dart';
-import 'core/mini_game_registry.dart';
-import 'games/pool/pool_descriptor.dart';
 
 void main() {
   _registerGames();
