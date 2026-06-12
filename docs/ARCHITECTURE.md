@@ -33,6 +33,8 @@ All multiplayer flows through `PeerTransport` (advertise, discover, connect, sen
 
 **v1 backend:** `flutter_nearby_connections` — Google Nearby Connections on Android, Multipeer Connectivity on iOS. This enables **same-OS play** (two Androids, or two iPhones). It does **not** let an iPhone talk to an Android, because those two high-level APIs don't interoperate.
 
+*Note: the `flutter_nearby_connections` dependency is currently **deferred** — it doesn't build under this project's AGP 8.11 / Kotlin 2.2 toolchain, so it was removed from `pubspec.yaml` until the transport is implemented (see [ADR-0004](adr/0004-defer-flutter-nearby-connections.md)). The v1 plan above is unchanged.*
+
 **Later milestone (ADR-0002):** cross-OS play via raw BLE (`flutter_blue_plus`) with a custom GATT protocol implemented on both platforms.
 
 ## State synchronization (ADR-0003)
