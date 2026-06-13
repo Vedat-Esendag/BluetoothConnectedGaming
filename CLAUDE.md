@@ -1,4 +1,4 @@
-# Pocket Arcade — Working Agreement
+# NearPlay — Working Agreement
 
 Read this at the start of every session. It is the source of truth; chat history is not.
 

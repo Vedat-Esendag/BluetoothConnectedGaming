@@ -10,7 +10,7 @@ labels: mini-game
 
 **Rules summary**
 
-**Why it fits Pocket Arcade**
+**Why it fits NearPlay**
 <!-- quick to learn, fun on two phones in the same room -->
 
 **Physics / engine needs**

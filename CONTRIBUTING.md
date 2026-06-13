@@ -1,6 +1,6 @@
-# Contributing to <DISPLAY NAME>
+# Contributing to NearPlay
 
-<DISPLAY NAME> is a Flutter app of small mini-games played locally over
+NearPlay is a Flutter app of small mini-games played locally over
 Bluetooth between two phones, with no server. This guide is how we work day to
 day. The authoritative rules live in [CLAUDE.md](CLAUDE.md) and the design in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — when this guide and those

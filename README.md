@@ -1,4 +1,4 @@
-# <DISPLAY NAME>
+# NearPlay
 
 > A collection of bite-sized mini-games you play **together, offline, over Bluetooth**. Pull out two phones, pick a game, and play — pool, and more to come.
 
@@ -8,7 +8,7 @@
 
 ## What this is
 
-<DISPLAY NAME> is a single Flutter app that hosts **many independent mini-games** behind one shared interface. Two players on the same Wi-Fi/Bluetooth range connect device-to-device — no server, no internet, no accounts. The first game is **Pool** (real ball physics via forge2d).
+NearPlay is a single Flutter app that hosts **many independent mini-games** behind one shared interface. Two players on the same Wi-Fi/Bluetooth range connect device-to-device — no server, no internet, no accounts. The first game is **Pool** (real ball physics via forge2d).
 
 ## Architecture in one paragraph
 
