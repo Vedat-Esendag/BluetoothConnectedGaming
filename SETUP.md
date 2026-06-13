@@ -7,7 +7,7 @@ installed. `gh` (GitHub CLI) is optional but used below.
 
 Throughout, the package is `bluetooth_connected_gaming` — used for the
 `pubspec.yaml` `name:` and every `package:bluetooth_connected_gaming/...` import.
-The product itself is referred to by its display name, `<DISPLAY NAME>`.
+The product itself is referred to by its display name, `NearPlay`.
 
 ## 1. Create the Flutter project
 ```bash
@@ -50,7 +50,7 @@ validation works.
 ```bash
 git init
 git add .
-git commit -m "chore: scaffold <DISPLAY NAME> (architecture, CI, agents, hooks, ADRs)"
+git commit -m "chore: scaffold NearPlay (architecture, CI, agents, hooks, ADRs)"
 ```
 
 ## 7. Create the GitHub repo and push

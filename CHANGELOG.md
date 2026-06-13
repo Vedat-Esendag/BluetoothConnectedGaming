@@ -16,7 +16,7 @@ All notable changes to this project are documented here. Format follows
 ### Changed
 - Adopt `package:` imports and clear all `very_good_analysis` findings.
 - Align naming: package stays `bluetooth_connected_gaming`; the product display
-  name is the `<DISPLAY NAME>` placeholder, and README badges point at the repo.
+  name is **NearPlay** (resolved in #18), and README badges point at the repo.
 - Scope Git LFS to `assets/`; keep platform launcher icons in normal git so the
   iOS/Android CI builds can read them.
 

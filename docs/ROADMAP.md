@@ -1,4 +1,4 @@
-# Pocket Arcade — Development Roadmap
+# NearPlay — Development Roadmap
 
 Issue dependency map and critical path from scaffold to Pool being playable.  
 Live tracker: https://github.com/Vedat-Esendag/BluetoothConnectedGaming/issues
