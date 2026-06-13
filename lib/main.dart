@@ -18,7 +18,7 @@ class BluetoothConnectedGamingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '<DISPLAY NAME>',
+      title: 'NearPlay',
       theme: ThemeData.dark(useMaterial3: true),
       home: const BluetoothConnectedGamingHome(),
     );
@@ -32,7 +32,7 @@ class BluetoothConnectedGamingHome extends StatelessWidget {
   Widget build(BuildContext context) {
     final games = MiniGameRegistry.instance.games;
     return Scaffold(
-      appBar: AppBar(title: const Text('<DISPLAY NAME>')),
+      appBar: AppBar(title: const Text('NearPlay')),
       body: ListView.builder(
         itemCount: games.length,
         itemBuilder: (context, i) {
