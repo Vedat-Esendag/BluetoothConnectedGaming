@@ -112,6 +112,26 @@ void main() {
       );
       expect(() => PeerMessage.fromWire(bad), throwsA(isA<PeerMessageError>()));
     });
+
+    test('rejects a pre-versioning frame (v:0)', () {
+      final bad = utf8.encode(
+        '{"v":0,"type":"input","senderId":"p1","seq":0,"payload":{}}',
+      );
+      expect(() => PeerMessage.fromWire(bad), throwsA(isA<PeerMessageError>()));
+    });
+
+    test('rejects a non-integer version', () {
+      for (final v in ['1.0', 'true', '"1"', 'null']) {
+        final bad = utf8.encode(
+          '{"v":$v,"type":"input","senderId":"p1","seq":0,"payload":{}}',
+        );
+        expect(
+          () => PeerMessage.fromWire(bad),
+          throwsA(isA<PeerMessageError>()),
+          reason: 'v:$v must be rejected',
+        );
+      }
+    });
   });
 
   group('MessageType vocabulary', () {
@@ -131,6 +151,8 @@ void main() {
 
     test('tryParse returns null for an unknown type', () {
       expect(MessageType.tryParse('admin'), isNull);
+      // The empty string also maps to null; note it can never reach tryParse
+      // via the wire — fromWire rejects an empty type first.
       expect(MessageType.tryParse(''), isNull);
     });
 

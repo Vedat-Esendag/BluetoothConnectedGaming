@@ -77,6 +77,8 @@ class PeerMessage {
     }
 
     final version = decoded['v'];
+    // `int` (not `num`) is deliberate: Dart decodes JSON floats (e.g. 1.0) and
+    // overflow-huge values as double, so this also rejects those.
     if (version is! int || version != wireVersion) {
       throw const PeerMessageError('unsupported protocol version');
     }
@@ -146,9 +148,9 @@ enum MessageType {
   final String wire;
 
   /// Maps a wire string to its [MessageType], or null if unrecognized.
-  static MessageType? tryParse(String wire) {
+  static MessageType? tryParse(String value) {
     for (final type in values) {
-      if (type.wire == wire) return type;
+      if (type.wire == value) return type;
     }
     return null;
   }
