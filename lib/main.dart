@@ -1,9 +1,12 @@
+import 'package:bluetooth_connected_gaming/core/bluetooth_service.dart';
 import 'package:bluetooth_connected_gaming/core/mini_game_registry.dart';
 import 'package:bluetooth_connected_gaming/games/pool/pool_descriptor.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   _registerGames();
+  await BluetoothService.instance.initialise();
   runApp(const BluetoothConnectedGamingApp());
 }
 
