@@ -7,6 +7,9 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- BLE GATT profile (#8, ADR-0006): a shared `GattContract` (service +
+  state/input characteristic UUIDs) that the host (#7) and joiner (#8) agree on,
+  with the host advertising the service UUID so the joiner can discover it.
 - Peer message protocol (#12): a `MessageType` vocabulary
   (`handshake`/`input`/`state`/`ping`) as the canonical source for wire types,
   a wire protocol version field validated in `PeerMessage.fromWire`, and
