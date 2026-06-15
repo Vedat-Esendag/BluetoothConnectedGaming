@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>NearPlay uses Bluetooth to connect with nearby players for local multiplayer games.</string>
 </dict>
 </plist>
