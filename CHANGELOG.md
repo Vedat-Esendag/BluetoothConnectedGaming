@@ -7,6 +7,11 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Peer message protocol (#12): a `MessageType` vocabulary
+  (`handshake`/`input`/`state`/`ping`) as the canonical source for wire types,
+  a wire protocol version field validated in `PeerMessage.fromWire`, and
+  round-trip tests for every type. The issue's "move" is realized as `input`
+  (see ADR-0005).
 - Project scaffold: mini-game registry, `PeerTransport` abstraction, validated
   `PeerMessage`, Pool descriptor stub.
 - Engineering setup: CLAUDE.md, review subagents, hooks, CI, ADRs.

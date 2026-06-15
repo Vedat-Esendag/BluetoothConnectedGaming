@@ -16,7 +16,13 @@ class PeerMessage {
     required this.payload,
   });
 
-  /// Application-defined type, e.g. `handshake`, `input`, `state`.
+  /// Wire-level message type. [MessageType] is the canonical vocabulary — build
+  /// outbound messages with `MessageType.x.wire`, never a hardcoded literal.
+  ///
+  /// [fromWire] stays permissive about the *value*: an unrecognized but
+  /// well-formed type is not a parse error. Such a frame is dropped by the
+  /// dispatcher — it never throws here and never reaches game logic. Dispatch
+  /// lives downstream (#13 handshake, #16 transport). See ADR-0005.
   final String type;
 
   /// Id of the sending peer.
@@ -28,12 +34,18 @@ class PeerMessage {
   /// Already-validated, opaque payload.
   final Map<String, Object?> payload;
 
+  /// Current wire protocol version. Bump on any breaking change to the frame
+  /// format; [fromWire] rejects any other version, so peers on incompatible
+  /// builds fail fast instead of silently mis-parsing. See ADR-0005.
+  static const int wireVersion = 1;
+
   /// Hard cap on a single frame; rejects absurd inputs early.
   static const int maxFrameBytes = 16 * 1024;
 
   static final RegExp _idPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 
   Map<String, Object?> toJson() => {
+    'v': wireVersion,
     'type': type,
     'senderId': senderId,
     'seq': seq,
@@ -62,6 +74,13 @@ class PeerMessage {
 
     if (decoded is! Map<String, Object?>) {
       throw const PeerMessageError('frame is not a JSON object');
+    }
+
+    final version = decoded['v'];
+    // `int` (not `num`) is deliberate: Dart decodes JSON floats (e.g. 1.0) and
+    // overflow-huge values as double, so this also rejects those.
+    if (version is! int || version != wireVersion) {
+      throw const PeerMessageError('unsupported protocol version');
     }
 
     final type = decoded['type'];
@@ -98,4 +117,41 @@ class PeerMessageError implements Exception {
 
   @override
   String toString() => 'PeerMessageError: $reason';
+}
+
+/// The defined transport-level message vocabulary.
+///
+/// [PeerMessage.type] carries the wire string; this enum is the canonical
+/// source — callers MUST use `MessageType.x.wire`, never a hardcoded literal (a
+/// typo'd literal still parses and only fails at runtime).
+///
+/// Game-specific data rides in [PeerMessage.payload]; the type vocabulary is a
+/// fixed transport concern, so a new game never adds a type (it reuses
+/// `input`/`state` with its own payload) — adding a game does not touch core.
+/// See ADR-0005.
+enum MessageType {
+  /// Connection setup and host/client role assignment (#13).
+  handshake('handshake'),
+
+  /// Client → host player action (e.g. a Pool shot).
+  input('input'),
+
+  /// Host → client authoritative state snapshot (ADR-0003).
+  state('state'),
+
+  /// Keepalive / liveness probe.
+  ping('ping');
+
+  const MessageType(this.wire);
+
+  /// The on-the-wire string for this type.
+  final String wire;
+
+  /// Maps a wire string to its [MessageType], or null if unrecognized.
+  static MessageType? tryParse(String value) {
+    for (final type in values) {
+      if (type.wire == value) return type;
+    }
+    return null;
+  }
 }
