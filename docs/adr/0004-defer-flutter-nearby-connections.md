@@ -3,7 +3,7 @@
 Date: 2026-06-13
 
 ## Status
-Accepted (defers part of ADR-0002; does not supersede it)
+Superseded (2026-06-15) — resolved by the pivot to raw BLE (ADR-0002, ADR-0006).
 
 ## Context
 ADR-0002 selects `flutter_nearby_connections` as the v1 local-multiplayer
@@ -26,11 +26,11 @@ choice of the same-OS Nearby/Multipeer backend for v1 still stands; we simply do
 not carry the dependency until the transport is actually implemented.
 
 ## Consequences
-CI builds a clean app and stays green. When `PeerTransport` gets a concrete
-implementation, the backend is re-added at that point — on a version or fork
-that declares an Android namespace and builds under AGP 8, and exercised on real
-devices then. If no compatible release materialises, the raw-BLE path
-(`flutter_blue_plus`, ADR-0002's later milestone) becomes the v1 backend
-instead. Until then, the documented v1 transport is a plan, not a wired-up
-dependency, and the doc comment in `peer_transport.dart` describes intent rather
-than a present package.
+Removing the dependency kept CI green at the time. The conditional this ADR set
+up — re-add `flutter_nearby_connections` if a compatible release appeared,
+otherwise fall back to raw BLE — has resolved in favour of **raw BLE**: no
+compatible release was adopted and the package was never re-added. NearPlay has
+committed to `flutter_blue_plus` (ADR-0002); its GATT profile is pinned in
+ADR-0006 and the scan/connect joiner ships in `lib/core/transport/ble/`.
+`flutter_nearby_connections` is therefore abandoned, not merely deferred. This
+ADR is retained as the record of why the dependency was removed.
