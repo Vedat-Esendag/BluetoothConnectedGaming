@@ -13,7 +13,7 @@ class BluetoothService {
     // first, check if bluetooth is supported by your hardware
     // Note: The platform is initialized on the first call to any FlutterBluePlus method.
     if (!(await FlutterBluePlus.isSupported)) {
-      print('Bluetooth not supported by this device');
+      debugPrint('Bluetooth not supported by this device');
       return;
     }
 
