@@ -95,6 +95,7 @@ class JoinController extends ChangeNotifier {
 
   /// Stop scanning and connect to [host], discovering its characteristics.
   Future<void> connectToHost(DiscoveredHost host) async {
+    if (_state is JoinConnecting || _state is JoinConnected) return;
     await _scanSub?.cancel();
     _scanSub = null;
     await _scanner.stopScan();

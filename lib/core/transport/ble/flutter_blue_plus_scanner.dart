@@ -121,7 +121,15 @@ class FlutterBluePlusScanner implements BleScanner {
       throw BleException(JoinFailureReason.connectionRefused, '$e');
     }
 
-    final services = await device.discoverServices();
+    late final List<fbp.BluetoothService> services;
+    try {
+      services = await device.discoverServices();
+    } on Object catch (e) {
+      // A GATT error after connect must not leave the device connected.
+      await device.disconnect();
+      throw BleException(JoinFailureReason.characteristicDiscoveryFailed, '$e');
+    }
+
     final stateGuid = fbp.Guid(GattContract.stateCharacteristicUuid);
     final inputGuid = fbp.Guid(GattContract.inputCharacteristicUuid);
 
@@ -143,10 +151,13 @@ class FlutterBluePlusScanner implements BleScanner {
       throw const BleException(JoinFailureReason.characteristicDiscoveryFailed);
     }
 
-    return _FbpConnection(
-      device,
-      characteristics.map((c) => c.uuid.str).toList(),
-    );
+    // Expose only the contract characteristics we validated — never the full
+    // set the peer advertised — so a hostile host can't seed extra UUIDs into
+    // the connection surface that #10 will later act on.
+    return _FbpConnection(device, const [
+      GattContract.stateCharacteristicUuid,
+      GattContract.inputCharacteristicUuid,
+    ]);
   }
 
   Object _mapScanError(Object error) {

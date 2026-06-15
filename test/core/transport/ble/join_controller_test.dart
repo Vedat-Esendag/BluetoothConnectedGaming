@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_scanner.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/join_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,6 +100,16 @@ void main() {
       expect(failureReason(), JoinFailureReason.connectionRefused);
     });
 
+    test('non-BleException scan error -> unknown', () async {
+      stubReady(BleReadiness.ready);
+      stubScan(Stream<DiscoveredHost>.error(Exception('boom')));
+
+      await controller.startScan();
+      await pumpEventQueue();
+
+      expect(failureReason(), JoinFailureReason.unknown);
+    });
+
     test('a second startScan while scanning is ignored', () async {
       stubReady(BleReadiness.ready);
       stubScan(const Stream<DiscoveredHost>.empty());
@@ -121,6 +133,18 @@ void main() {
       verify(() => scanner.connect('a')).called(1);
     });
 
+    test('a second connectToHost is ignored once connected', () async {
+      final connection = _MockBleConnection();
+      when(() => scanner.connect(any())).thenAnswer((_) async => connection);
+
+      await controller.connectToHost(hostA);
+      await controller.connectToHost(hostB);
+
+      expect(controller.state, isA<JoinConnected>());
+      verify(() => scanner.connect('a')).called(1);
+      verifyNever(() => scanner.connect('b'));
+    });
+
     test('BleException -> its reason', () async {
       when(() => scanner.connect(any())).thenThrow(
         const BleException(JoinFailureReason.characteristicDiscoveryFailed),
@@ -138,6 +162,20 @@ void main() {
 
       expect(failureReason(), JoinFailureReason.unknown);
     });
+  });
+
+  test('dispose during an active scan cancels cleanly', () async {
+    final scanStream = StreamController<DiscoveredHost>();
+    stubReady(BleReadiness.ready);
+    stubScan(scanStream.stream);
+    final disposable = JoinController(scanner);
+
+    await disposable.startScan();
+    await pumpEventQueue();
+    expect(disposable.state, isA<JoinScanning>());
+    expect(disposable.dispose, returnsNormally);
+
+    await scanStream.close();
   });
 
   test('notifies listeners on state change', () async {
