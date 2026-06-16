@@ -7,11 +7,11 @@ enum PeerRole { host, client }
 
 /// Abstraction over the local-multiplayer transport.
 ///
-/// v1 is backed by `flutter_nearby_connections` (Nearby Connections on Android,
-/// Multipeer Connectivity on iOS), enabling same-OS play. Cross-OS play
-/// (iPhone <-> Android) is a later milestone backed by raw BLE — see
-/// docs/adr/0002. Game code depends ONLY on this interface, never on a concrete
-/// transport, so swapping the backend never touches a game.
+/// v1 is backed by raw BLE via `flutter_blue_plus` (a custom GATT protocol),
+/// which works cross-OS (iPhone <-> Android) — see docs/adr/0002, and the
+/// `flutter_nearby_connections` deferral in docs/adr/0004. Game code depends
+/// ONLY on this interface, never on a concrete transport, so swapping the
+/// backend never touches a game.
 abstract class PeerTransport {
   /// Become discoverable under [displayName].
   Future<void> startAdvertising(String displayName);
