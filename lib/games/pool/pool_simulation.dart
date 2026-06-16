@@ -93,8 +93,20 @@ class PoolSimulation {
     }
   }
 
+  /// Re-spawns a scratched cue ball at the head spot so play can continue.
+  /// No-op if the cue ball is already in play. (Ball-in-hand placement is v2.)
+  void respawnCue() {
+    final cue = _balls.first;
+    if (!cue.pocketed) return;
+    cue
+      ..body = _createBallBody(_cueHeadSpot)
+      ..pocketed = false;
+  }
+
+  Vector2 get _cueHeadSpot => Vector2(-halfWidth / 2, 0);
+
   void _rackBalls() {
-    _addBall(0, Vector2(-halfWidth / 2, 0));
+    _addBall(0, _cueHeadSpot);
     const spacing = ballRadius * 2 + 0.02;
     const apexX = halfWidth / 2;
     var id = 1;
@@ -108,20 +120,22 @@ class PoolSimulation {
   }
 
   void _addBall(int id, Vector2 position) {
-    final body =
-        _world.createBody(
-          BodyDef()
-            ..type = BodyType.dynamic
-            ..position = position
-            ..linearDamping = 0.8
-            ..angularDamping = 0.8
-            ..bullet = true, // continuous collision: don't tunnel through rails
-        )..createFixtureFromShape(
-          CircleShape()..radius = ballRadius,
-          friction: 0.2,
-          restitution: 0.92,
-        );
-    _balls.add(_Ball(id, body));
+    _balls.add(_Ball(id, _createBallBody(position)));
+  }
+
+  Body _createBallBody(Vector2 position) {
+    return _world.createBody(
+      BodyDef()
+        ..type = BodyType.dynamic
+        ..position = position
+        ..linearDamping = 0.8
+        ..angularDamping = 0.8
+        ..bullet = true, // continuous collision: don't tunnel through rails
+    )..createFixtureFromShape(
+      CircleShape()..radius = ballRadius,
+      friction: 0.2,
+      restitution: 0.92,
+    );
   }
 
   void _buildRails() {
@@ -147,6 +161,6 @@ class _Ball {
   _Ball(this.id, this.body);
 
   final int id;
-  final Body body;
+  Body body;
   bool pocketed = false;
 }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:bluetooth_connected_gaming/games/pool/pool_simulation.dart';
 import 'package:bluetooth_connected_gaming/games/pool/shot_command.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +50,22 @@ void main() {
       }
 
       expect(run(), run());
+    });
+
+    test('a pocketed cue ball can be respawned back into play', () {
+      final sim = PoolSimulation();
+
+      // Fire the cue straight into the bottom-left corner pocket.
+      const toBottomLeftCorner = -3 * math.pi / 4;
+      sim.step(const [ShotCommand(angle: toBottomLeftCorner, power: 1)]);
+      var cuePocketed = false;
+      for (var i = 0; i < 600 && !cuePocketed; i++) {
+        cuePocketed = sim.step().balls.first.pocketed;
+      }
+      expect(cuePocketed, isTrue, reason: 'cue should fall into the corner');
+
+      sim.respawnCue();
+      expect(sim.snapshot().balls.first.pocketed, isFalse);
     });
   });
 }

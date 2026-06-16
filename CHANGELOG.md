@@ -41,6 +41,11 @@ All notable changes to this project are documented here. Format follows
   steps deterministically with no Flame import, plus plain-Dart `ShotCommand`
   and `PoolSnapshot` value types. Covered by a determinism test (same inputs →
   identical snapshots, per ADR-0003) and rack/strike/rest tests.
+- Pool rules (#22): a pure-Dart `PoolRulesEngine` for minimal 8-ball
+  pass-and-play (pocket to keep shooting, scratch/miss passes the turn, 8-ball
+  early = loss, 8-ball after clearing the rest = win), plus a `respawnCue` on
+  the simulation so play continues after a scratch. Solids/stripes and complex
+  fouls deferred to v2.
 
 ### Changed
 - Adopt `package:` imports and clear all `very_good_analysis` findings.
