@@ -46,6 +46,10 @@ All notable changes to this project are documented here. Format follows
   early = loss, 8-ball after clearing the rest = win), plus a `respawnCue` on
   the simulation so play continues after a scratch. Solids/stripes and complex
   fouls deferred to v2.
+- Playable Pool (#20, #21, #23): a Flame `PoolGame` that drives the simulation
+  at a fixed timestep and renders the snapshot, slingshot drag input
+  (`shotFromDrag`), and a `PoolHud` turn indicator + winner/rematch card. The
+  Pool tile now opens the local game instead of a "coming soon" stub.
 
 ### Changed
 - Adopt `package:` imports and clear all `very_good_analysis` findings.

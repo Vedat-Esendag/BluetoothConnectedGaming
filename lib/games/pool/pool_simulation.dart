@@ -70,6 +70,12 @@ class PoolSimulation {
     (ball) => ball.pocketed || ball.body.linearVelocity.length < _restSpeed,
   );
 
+  /// Pocket centres as plain `(x, y)` records (no forge2d types leak out, per
+  /// ADR-0008) — for the renderer to draw the pockets.
+  static List<(double, double)> get pocketCenters => <(double, double)>[
+    for (final pocket in _pockets) (pocket.x, pocket.y),
+  ];
+
   void _applyShot(ShotCommand command) {
     final cue = _balls.first;
     if (cue.pocketed) return;
