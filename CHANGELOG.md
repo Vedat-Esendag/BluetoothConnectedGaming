@@ -7,6 +7,20 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- BLE GATT profile (#8, ADR-0006): a shared `GattContract` (service +
+  state/input characteristic UUIDs) that the host (#7) and joiner (#8) agree on,
+  with the host advertising the service UUID so the joiner can discover it.
+- BLE joiner core (#8): a `BleScanner` interface and a `JoinController` state
+  machine (scan → connect → discover) with a sealed `JoinState` and a
+  `JoinFailureReason` taxonomy, fully unit-tested with `mocktail` (no hardware).
+- BLE joiner adapter (#8): `FlutterBluePlusScanner`, the hardware-backed
+  `BleScanner` that scans by service UUID, connects, and verifies the contract's
+  characteristics. Isolated behind the interface; validated on-device (#26),
+  not in CI.
+- Join screen (#8): a minimal `JoinScreen` (scan → host list → connect) reached
+  from the home shell via "Join a Bluetooth game", rendering a specific message
+  and recovery action for every outcome (success and each failure), with
+  screen-reader labels and icon+text (never colour-only) status.
 - Peer message protocol (#12): a `MessageType` vocabulary
   (`handshake`/`input`/`state`/`ping`) as the canonical source for wire types,
   a wire protocol version field validated in `PeerMessage.fromWire`, and
