@@ -1,4 +1,4 @@
-# 0006. A fake transport in `test/` is the no-hardware test seam
+# 0007. A fake transport in `test/` is the no-hardware test seam
 
 Date: 2026-06-16
 

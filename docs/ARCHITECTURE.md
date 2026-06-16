@@ -31,11 +31,9 @@ Use `/new-minigame <id>` to scaffold this.
 ## Local multiplayer
 All multiplayer flows through `PeerTransport` (advertise, discover, connect, send, `incoming` stream, disconnect). Games receive a `GameSession` carrying the transport, the device's role (host/client), and the local player id.
 
-**v1 backend:** `flutter_nearby_connections` — Google Nearby Connections on Android, Multipeer Connectivity on iOS. This enables **same-OS play** (two Androids, or two iPhones). It does **not** let an iPhone talk to an Android, because those two high-level APIs don't interoperate.
+**v1 backend:** raw BLE via `flutter_blue_plus` — the transport common to both platforms, enabling **cross-OS play** (an iPhone and an Android can play together). The decision and its rationale live in [ADR-0002](adr/0002-multiplayer-transport-and-scope.md); the custom GATT profile (service + characteristic UUIDs) is pinned in [ADR-0006](adr/0006-ble-gatt-profile.md). The scan/connect joiner lives in `lib/core/transport/ble/`.
 
-*Note: the `flutter_nearby_connections` dependency is currently **deferred** — it doesn't build under this project's AGP 8.11 / Kotlin 2.2 toolchain, so it was removed from `pubspec.yaml` until the transport is implemented (see [ADR-0004](adr/0004-defer-flutter-nearby-connections.md)). The v1 plan above is unchanged.*
-
-**Later milestone (ADR-0002):** cross-OS play via raw BLE (`flutter_blue_plus`) with a custom GATT protocol implemented on both platforms.
+*The high-level, platform-locked options — Google Nearby Connections and Apple Multipeer Connectivity — were considered and rejected: they only support same-OS play and don't interoperate. The dependency placeholder that briefly stood in for that approach was removed; see [ADR-0004](adr/0004-defer-flutter-nearby-connections.md).*
 
 ## State synchronization (ADR-0003)
 **Host-authoritative.** One device hosts: it owns the simulation, advances physics/scoring, and broadcasts authoritative snapshots. The client sends inputs and renders received state. This sidesteps cross-device floating-point nondeterminism that would otherwise desync independent simulations. For Pool: host runs forge2d, sends ball transforms; client sends shot inputs.

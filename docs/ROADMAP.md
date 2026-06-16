@@ -18,7 +18,7 @@ Every link must complete before the next can start:
 ## Dependency Graph
 
 ```
-#15 (ADR-0005) ──── DECISION GATE — resolve before writing any transport code
+#15 (ADR-0002) ──── DECISION GATE — resolve before writing any transport code
     │
     ├── #5  (permissions) ── #7 (GATT server) ─┐
     │                        #8 (scan+connect) ─┴──► #9 (raw bytes) ──► #10 (PeerConnection)
@@ -69,7 +69,7 @@ Must resolve before any BLE code is written.
 
 | Issue | Title | Status |
 |-------|-------|--------|
-| **#15** | Confirm transport strategy + write ADR-0005 | Ready |
+| **#15** | Confirm transport strategy (ADR-0002 + ADR-0006) | Ready |
 
 ### Phase 1 — Foundation (parallelizable once #15 is decided)
 
@@ -125,13 +125,13 @@ Build #11 (loopback) alongside #16 so M2 Pool logic can be developed without two
 | **#25** | CI coverage threshold | Add after #22 ships — meaningless at 0% game coverage |
 | **#26** | Bluetooth smoke-test runbook | Write after #16 ships — can't validate before then |
 | **#27** | Second mini-game (M3) | After Pool proves the module contract |
-| **#37** | BLE debug/test strategy | Research done — `docs/testing-ble.md` + ADR-0006; informs #11/#16/#26 |
+| **#37** | BLE debug/test strategy | Research done — `docs/testing-ble.md` + ADR-0007; informs #11/#16/#26 |
 
 ---
 
 ## What to Work on Right Now
 
-1. **#15** — write ADR-0005, confirm transport library (half-day; unlocks 7+ issues)
+1. **#15** — confirm transport library, record ADR-0002 + ADR-0006 (half-day; unlocks 7+ issues)
 2. **#12** — message codec (zero dependencies; can start today)
 3. **#18** — fix display name (5 minutes; leaf issue)
 4. **#24** — MiniGameRegistry tests (pure Dart, ~1 hour; leaf issue)

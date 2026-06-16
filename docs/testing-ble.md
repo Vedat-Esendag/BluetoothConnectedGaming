@@ -4,12 +4,13 @@ How to develop and test the Bluetooth transport without losing your mind to
 two-phone setups. This is the strategy doc that issue
 [#37](https://github.com/Vedat-Esendag/BluetoothConnectedGaming/issues/37) asked
 for; the test-seam decision behind it is recorded in
-[ADR-0006](adr/0006-fake-transport-test-seam.md).
+[ADR-0007](adr/0007-fake-transport-test-seam.md).
 
 > **Provisional.** The fake/loopback `PeerTransport` described under *Automated
 > tests* is **not implemented yet** — it is tracked by issue #11 and built
-> alongside the concrete transport (#16). Today only the pieces marked
-> **available now** exist. Everything else is the plan you are reading so #7–#16
+> alongside the concrete transport (#16). The BLE joiner (scan → connect, #8) and
+> the shared `GattContract` already ship under `lib/core/transport/ble/`; the
+> rest is the plan you are reading, so the remaining transport issues (#9–#16)
 > don't each reinvent it.
 
 ## The one rule that saves the most time
@@ -25,6 +26,7 @@ scarce two-phone time only on what genuinely needs it.
 | Layer | Needs | How |
 | --- | --- | --- |
 | `PeerMessage.fromWire` validation (the security boundary) | **Zero hardware** — available now | Unit tests feeding raw bytes (`test/core/peer_message_test.dart`) |
+| BLE joiner flow (scan → connect state machine) | **Zero hardware** — ships now | Mock the `BleScanner` interface + `mocktail` (#8's `JoinController`) |
 | Handshake, dispatch, game rules/scoring (`PeerTransport` consumers) | **Zero hardware** — needs the fake (#11) | Fake/loopback transport + `mocktail` |
 | Connection mechanics: advertise / discover / connect / MTU / notify / disconnect | **One phone + a generic BLE tool** | nRF Connect / LightBlue standing in for the second peer at the GATT level |
 | Real end-to-end `PeerMessage` exchange, reconnect, timing | **Two phones** | Two `flutter run` sessions; smoke-test runbook (#26) |
@@ -103,9 +105,17 @@ is intentional — hostile *bytes* are a `fromWire` concern (above) and, once it
 exists, a concern of the raw-byte ingestion layer (#10 PeerConnection). The fake
 is for *logic*, not for *frame validation*.
 
-Per [ADR-0006](adr/0006-fake-transport-test-seam.md) the fake lives in `test/`,
+Per [ADR-0007](adr/0007-fake-transport-test-seam.md) the fake lives in `test/`,
 and one shared **contract test** will run against both the fake and the real
 `BleTransport` so they cannot silently diverge.
+
+**This pattern already ships.** #8's
+[`JoinController`](../lib/core/transport/ble/join_controller.dart) is a live
+example — a state machine driven entirely through the `BleScanner` *interface*,
+so it is unit-tested with `mocktail` and **no hardware**
+([`test/core/transport/ble/join_controller_test.dart`](../test/core/transport/ble/join_controller_test.dart)).
+The fake transport (#11) extends the same interface-seam idea to full
+`PeerTransport` consumers.
 
 ### `mocktail` for interaction assertions
 
@@ -136,6 +146,14 @@ directions:
   dynamically. So for the "advertise our service" direction prefer **nRF Connect
   on Android**, **LightBlue** (verify the exact peripheral capabilities on your
   device), or simply a second real phone.
+
+The UUIDs to mirror are pinned in
+[`GattContract`](../lib/core/transport/ble/gatt_contract.dart) (ADR-0006):
+service `e6695a2e-…` (advertised by the host, scanned by the joiner), a **state**
+characteristic (host → joiner, `notify`) and an **input** characteristic
+(joiner → host, `write`). Standing in for the host, advertise the service UUID
+and expose those two characteristics; standing in for the joiner, connect,
+subscribe to *state*, and write to *input*.
 
 What this buys you: debugging the connection lifecycle — advertise → discover →
 connect → MTU → subscribe/notify → disconnect — and confirming our GATT service
