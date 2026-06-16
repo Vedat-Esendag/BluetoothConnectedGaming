@@ -36,6 +36,9 @@ All notable changes to this project are documented here. Format follows
 - Engineering setup: CLAUDE.md, review subagents, hooks, CI, ADRs.
 - `CONTRIBUTING.md`: branch/PR flow, Conventional Commits, review gates,
   `/new-minigame`, and the definition of done.
+- Pool simulation foundation (#19, ADR-0008): `forge2d` as a direct dependency
+  and a headless spike proving physics steps deterministically with no Flame
+  import — the basis for the host-authoritative Pool simulation (ADR-0003).
 
 ### Changed
 - Adopt `package:` imports and clear all `very_good_analysis` findings.
