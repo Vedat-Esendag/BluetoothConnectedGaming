@@ -7,6 +7,11 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- BLE testing & debugging strategy (#37): `docs/testing-ble.md` capturing the
+  recommended dev loop, the tools to install, and the split between automated
+  tests (no hardware) and manual two-device verification — plus ADR-0006
+  recording a fake/loopback `PeerTransport` (in `test/`) as the no-hardware test
+  seam (implementation tracked by #11).
 - Peer message protocol (#12): a `MessageType` vocabulary
   (`handshake`/`input`/`state`/`ping`) as the canonical source for wire types,
   a wire protocol version field validated in `PeerMessage.fromWire`, and
@@ -29,3 +34,9 @@ All notable changes to this project are documented here. Format follows
 - Unused `equatable` dependency.
 - `flutter_nearby_connections` dependency — deferred until the transport is
   implemented; it does not build under AGP 8.11 / Kotlin 2.2 yet (see ADR-0004).
+
+### Fixed
+- The `PeerTransport` doc comment named `flutter_nearby_connections` as the v1
+  backend; corrected to raw BLE via `flutter_blue_plus`, which ADR-0002 records as
+  the v1 transport (`flutter_nearby_connections` was deferred and removed in
+  ADR-0004).

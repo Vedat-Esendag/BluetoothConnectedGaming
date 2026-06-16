@@ -125,6 +125,7 @@ Build #11 (loopback) alongside #16 so M2 Pool logic can be developed without two
 | **#25** | CI coverage threshold | Add after #22 ships — meaningless at 0% game coverage |
 | **#26** | Bluetooth smoke-test runbook | Write after #16 ships — can't validate before then |
 | **#27** | Second mini-game (M3) | After Pool proves the module contract |
+| **#37** | BLE debug/test strategy | Research done — `docs/testing-ble.md` + ADR-0006; informs #11/#16/#26 |
 
 ---
 
