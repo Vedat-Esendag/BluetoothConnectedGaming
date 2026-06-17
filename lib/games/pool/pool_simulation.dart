@@ -24,9 +24,11 @@ class PoolSimulation {
   static const double halfHeight = 5;
   static const double ballRadius = 0.5;
   static const double pocketRadius = 0.9;
-  static const int ballCount = 16;
 
-  static const double _fixedDt = 1 / 60;
+  /// The fixed physics timestep. Public so the game loop steps at the exact
+  /// rate the simulation was tuned for (one source of truth).
+  static const double fixedDt = 1 / 60;
+
   static const double _restSpeed = 0.05;
   static const double _maxImpulse = 30;
   static const double _railThickness = 1;
@@ -47,7 +49,7 @@ class PoolSimulation {
   /// returns the resulting snapshot. Pure function of (current state, commands).
   PoolSnapshot step([List<ShotCommand> commands = const <ShotCommand>[]]) {
     commands.forEach(_applyShot);
-    _world.stepDt(_fixedDt);
+    _world.stepDt(fixedDt);
     _pocketBalls();
     return snapshot();
   }

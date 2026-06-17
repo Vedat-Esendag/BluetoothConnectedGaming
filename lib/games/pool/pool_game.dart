@@ -17,7 +17,9 @@ class PoolGame extends FlameGame {
     : _sim = simulation ?? PoolSimulation(),
       _rules = rules ?? PoolRulesEngine();
 
-  static const double _fixedDt = 1 / 60;
+  /// Cap on physics catch-up per frame, so a long pause (e.g. backgrounding)
+  /// doesn't trigger a huge burst of steps in a single update.
+  static const int _maxCatchUpSteps = 8;
 
   PoolSimulation _sim;
   PoolRulesEngine _rules;
@@ -26,6 +28,10 @@ class PoolGame extends FlameGame {
   final ValueNotifier<PoolGameState> stateNotifier = ValueNotifier(
     const PoolGameState(currentPlayer: PoolPlayer.one),
   );
+
+  /// The latest snapshot, refreshed as the sim steps and read by the renderer —
+  /// avoids allocating a new snapshot every render frame.
+  late PoolSnapshot _lastSnapshot = _sim.snapshot();
 
   double _accumulator = 0;
   ShotCommand? _pendingShot;
@@ -38,7 +44,7 @@ class PoolGame extends FlameGame {
   /// Queue a shot. Ignored while the table is still settling or the game is over.
   void shoot(ShotCommand command) {
     if (!canShoot) return;
-    _pocketedBeforeShot = _pocketedIds(_sim.snapshot());
+    _pocketedBeforeShot = _pocketedIds(_lastSnapshot);
     _pendingShot = command;
     _settling = true;
   }
@@ -50,6 +56,8 @@ class PoolGame extends FlameGame {
     _settling = false;
     _pendingShot = null;
     _accumulator = 0;
+    _pocketedBeforeShot = const <int>{};
+    _lastSnapshot = _sim.snapshot();
     stateNotifier.value = _rules.state;
   }
 
@@ -57,9 +65,11 @@ class PoolGame extends FlameGame {
   void update(double dt) {
     super.update(dt);
     _accumulator += dt;
-    while (_accumulator >= _fixedDt) {
+    const maxAccumulator = PoolSimulation.fixedDt * _maxCatchUpSteps;
+    if (_accumulator > maxAccumulator) _accumulator = maxAccumulator;
+    while (_accumulator >= PoolSimulation.fixedDt) {
       _advance();
-      _accumulator -= _fixedDt;
+      _accumulator -= PoolSimulation.fixedDt;
     }
   }
 
@@ -67,22 +77,25 @@ class PoolGame extends FlameGame {
     final shot = _pendingShot;
     if (shot != null) {
       _pendingShot = null;
-      _sim.step(<ShotCommand>[shot]);
+      _lastSnapshot = _sim.step(<ShotCommand>[shot]);
       return;
     }
     if (_settling) {
-      _sim.step();
+      _lastSnapshot = _sim.step();
       if (_sim.isAtRest) _resolveShot();
     }
   }
 
   void _resolveShot() {
     _settling = false;
-    final after = _sim.snapshot();
+    final after = _lastSnapshot;
     final pocketedNow = _pocketedIds(after).difference(_pocketedBeforeShot);
     final cuePocketed = after.balls.first.pocketed;
     _rules.applyShot(pocketed: pocketedNow, cuePocketed: cuePocketed);
-    if (cuePocketed && !_rules.state.isGameOver) _sim.respawnCue();
+    if (cuePocketed && !_rules.state.isGameOver) {
+      _sim.respawnCue();
+      _lastSnapshot = _sim.snapshot(); // reflect the respawned cue ball
+    }
     stateNotifier.value = _rules.state;
   }
 
@@ -138,7 +151,7 @@ class PoolGame extends FlameGame {
   }
 
   void _paintBalls(Canvas canvas, Offset origin, double scale) {
-    for (final ball in _sim.snapshot().balls) {
+    for (final ball in _lastSnapshot.balls) {
       if (ball.pocketed) continue;
       canvas.drawCircle(
         _toScreen(ball.x, ball.y, origin, scale),

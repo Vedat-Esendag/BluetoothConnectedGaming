@@ -42,8 +42,6 @@ class PoolGameState {
 /// the winner. Solids/stripes group assignment, legal-first-contact and no-rail
 /// fouls are deferred (v2) — this is the smallest complete loop.
 class PoolRulesEngine {
-  PoolRulesEngine();
-
   /// The id of the 8-ball.
   static const int eightBall = 8;
 
