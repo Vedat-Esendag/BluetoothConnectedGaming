@@ -30,24 +30,31 @@ class _PoolGameWidgetState extends State<PoolGameWidget> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxDrag = constraints.biggest.shortestSide * 0.4;
-        return Stack(
-          children: [
-            GestureDetector(
-              onPanStart: (details) => _dragStart = details.localPosition,
-              onPanUpdate: (details) =>
-                  _dragDelta = details.localPosition - _dragStart,
-              onPanEnd: (_) {
-                _game.shoot(shotFromDrag(_dragDelta, maxDragDistance: maxDrag));
-                _dragDelta = Offset.zero;
-              },
-              child: GameWidget(game: _game),
-            ),
-            ValueListenableBuilder<PoolGameState>(
-              valueListenable: _game.stateNotifier,
-              builder: (context, state, _) =>
-                  PoolHud(state: state, onRematch: _game.resetGame),
-            ),
-          ],
+        // Scaffold makes the game self-contained: it is pushed as a bare route
+        // (see main.dart) so it must provide its own Material ancestor for the
+        // HUD's Material widgets (Chip/Card/FilledButton).
+        return Scaffold(
+          body: Stack(
+            children: [
+              GestureDetector(
+                onPanStart: (details) => _dragStart = details.localPosition,
+                onPanUpdate: (details) =>
+                    _dragDelta = details.localPosition - _dragStart,
+                onPanEnd: (_) {
+                  _game.shoot(
+                    shotFromDrag(_dragDelta, maxDragDistance: maxDrag),
+                  );
+                  _dragDelta = Offset.zero;
+                },
+                child: GameWidget(game: _game),
+              ),
+              ValueListenableBuilder<PoolGameState>(
+                valueListenable: _game.stateNotifier,
+                builder: (context, state, _) =>
+                    PoolHud(state: state, onRematch: _game.resetGame),
+              ),
+            ],
+          ),
         );
       },
     );
