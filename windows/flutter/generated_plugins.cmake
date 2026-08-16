@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  bluetooth_low_energy_windows
   flutter_blue_plus_winrt
 )
 
