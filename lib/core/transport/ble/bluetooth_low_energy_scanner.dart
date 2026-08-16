@@ -70,11 +70,11 @@ class BluetoothLowEnergyScanner implements BleScanner {
             DiscoveredHost(
               id: id,
               // An advertised name comes from an unauthenticated device that
-            // has not connected yet — it never reaches a widget unscrubbed.
-            name: sanitizeDisplayName(
-              event.advertisement.name,
-              fallback: '',
-            ),
+              // has not connected yet — it never reaches a widget unscrubbed.
+              name: sanitizeDisplayName(
+                event.advertisement.name,
+                fallback: '',
+              ),
               rssi: event.rssi,
             ),
           );

@@ -9,6 +9,10 @@
 - [ ] Peer-facing changes validate all inbound data via `PeerMessage.fromWire`
 - [ ] ADR added/updated if this was an architectural decision
 - [ ] CHANGELOG updated under Unreleased
+- [ ] **If this touches `lib/core/transport/ble/`:** the real-device smoke test
+      (`docs/testing/bluetooth-smoke-test.md`) was run, and the devices/OS
+      versions are recorded below. CI cannot test Bluetooth — nothing else
+      covers those files.
 
 ## Notes for reviewer
 <!-- Anything the security-reviewer / code-reviewer subagents should focus on. -->
