@@ -15,6 +15,7 @@ class PoolSimulation {
   PoolSimulation() {
     _rackBalls();
     _buildRails();
+    _world.setContactListener(_contacts);
   }
 
   /// Half the playing-surface width; valid x spans `[-halfWidth, halfWidth]`.
@@ -35,6 +36,7 @@ class PoolSimulation {
 
   final World _world = World(Vector2.zero());
   final List<_Ball> _balls = <_Ball>[];
+  final _FirstContactListener _contacts = _FirstContactListener();
 
   static final List<Vector2> _pockets = <Vector2>[
     Vector2(-halfWidth, -halfHeight),
@@ -53,6 +55,23 @@ class PoolSimulation {
     _pocketBalls();
     return snapshot();
   }
+
+  /// The id of the first ball the cue ball touched since [beginShot], or null
+  /// if it has not touched one.
+  ///
+  /// 8-ball's legality rules turn on what you hit *first*, which is a physics
+  /// fact the rules engine cannot recompute from positions — so the world
+  /// records it as it happens.
+  int? get firstBallStruck => _contacts.firstStruck;
+
+  /// Whether any ball has touched a rail since [beginShot].
+  ///
+  /// The other half of a legal shot: pot nothing and drive nothing to a
+  /// cushion, and it is a foul even if you hit the right ball.
+  bool get railContacted => _contacts.railTouched;
+
+  /// Reset per-shot contact tracking. Call immediately before applying a shot.
+  void beginShot() => _contacts.reset();
 
   /// The current authoritative state of every ball.
   PoolSnapshot snapshot() => PoolSnapshot(
@@ -107,7 +126,7 @@ class PoolSimulation {
     final cue = _balls.first;
     if (!cue.pocketed) return;
     cue
-      ..body = _createBallBody(_cueHeadSpot)
+      ..body = (_createBallBody(_cueHeadSpot)..userData = const _BallTag(0))
       ..pocketed = false;
   }
 
@@ -128,7 +147,9 @@ class PoolSimulation {
   }
 
   void _addBall(int id, Vector2 position) {
-    _balls.add(_Ball(id, _createBallBody(position)));
+    final ball = _Ball(id, _createBallBody(position));
+    ball.body.userData = _BallTag(id);
+    _balls.add(ball);
   }
 
   Body _createBallBody(Vector2 position) {
@@ -155,13 +176,13 @@ class PoolSimulation {
   }
 
   void _addRail(Vector2 center, double halfW, double halfH) {
-    _world
-        .createBody(BodyDef()..position = center)
-        .createFixtureFromShape(
-          PolygonShape()..setAsBoxXY(halfW, halfH),
-          friction: 0.2,
-          restitution: 0.6,
-        );
+    _world.createBody(BodyDef()..position = center)
+      ..userData = const _RailTag()
+      ..createFixtureFromShape(
+        PolygonShape()..setAsBoxXY(halfW, halfH),
+        friction: 0.2,
+        restitution: 0.6,
+      );
   }
 }
 
@@ -171,4 +192,45 @@ class _Ball {
   final int id;
   Body body;
   bool pocketed = false;
+}
+
+/// Marks a body as ball [id], so contacts can be attributed.
+class _BallTag {
+  const _BallTag(this.id);
+
+  final int id;
+}
+
+/// Marks a body as a cushion.
+class _RailTag {
+  const _RailTag();
+}
+
+/// Records the two physics facts 8-ball's foul rules need: what the cue ball
+/// touched first, and whether anything reached a cushion.
+///
+/// Contacts are the only place these can be observed — by the time the table is
+/// at rest, the information is gone.
+class _FirstContactListener extends ContactListener {
+  int? firstStruck;
+  bool railTouched = false;
+
+  void reset() {
+    firstStruck = null;
+    railTouched = false;
+  }
+
+  @override
+  void beginContact(Contact contact) {
+    final a = contact.bodyA.userData;
+    final b = contact.bodyB.userData;
+
+    if (a is _RailTag || b is _RailTag) railTouched = true;
+
+    if (firstStruck != null) return;
+    if (a is! _BallTag || b is! _BallTag) return;
+    // Only the cue ball's first contact decides legality.
+    if (a.id == 0) firstStruck = b.id;
+    if (b.id == 0) firstStruck = a.id;
+  }
 }

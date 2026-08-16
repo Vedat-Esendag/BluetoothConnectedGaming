@@ -135,6 +135,10 @@ class PoolGame extends FlameGame {
 
   void _applyShot(ShotCommand command) {
     _pocketedBeforeShot = _pocketedIds(_lastSnapshot);
+    // Contact tracking is per shot: what the cue ball hits first, and whether
+    // anything reaches a cushion, decide legality and cannot be recovered once
+    // the table is at rest.
+    _sim.beginShot();
     _pendingShot = command;
     _settling = true;
   }
@@ -188,7 +192,14 @@ class PoolGame extends FlameGame {
     final after = _lastSnapshot;
     final pocketedNow = _pocketedIds(after).difference(_pocketedBeforeShot);
     final cuePocketed = after.balls.first.pocketed;
-    _rules.applyShot(pocketed: pocketedNow, cuePocketed: cuePocketed);
+    _rules.applyShot(
+      ShotOutcome(
+        pocketed: pocketedNow,
+        cuePocketed: cuePocketed,
+        firstBallStruck: _sim.firstBallStruck,
+        railContacted: _sim.railContacted,
+      ),
+    );
     if (cuePocketed && !_rules.state.isGameOver) {
       _sim.respawnCue();
       _lastSnapshot = _sim.snapshot(); // reflect the respawned cue ball
