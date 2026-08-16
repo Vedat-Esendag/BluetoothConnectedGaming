@@ -88,7 +88,7 @@ void main() {
       final reassembler = FrameReassembler();
       final stream = <int>[
         ...chunkFrame(<int>[9, 9], maxChunkBytes: 512).single,
-        ...chunkFrame(<int>[8], maxChunkBytes: 512).single,
+        ...chunkFrame(<int>[8, 7], maxChunkBytes: 512).single,
       ];
 
       expect(reassembler.addChunk(stream.sublist(0, 4)), isEmpty);
@@ -96,13 +96,18 @@ void main() {
 
       expect(frames.map((f) => f.toList()), <List<int>>[
         <int>[9, 9],
-        <int>[8],
+        <int>[8, 7],
       ]);
     });
 
-    test('a zero-length frame is a valid frame', () {
+    test('a zero-length frame is a framing violation, not an empty frame', () {
+      // `00 00 00 00` is four bytes that would otherwise buy a full
+      // validate-and-drop cycle — the cheapest way to make a receiver work.
       final reassembler = FrameReassembler();
-      expect(reassembler.addChunk(_header(0)), <Uint8List>[Uint8List(0)]);
+      expect(
+        () => reassembler.addChunk(_header(0)),
+        throwsA(isA<FrameProtocolError>()),
+      );
     });
 
     group('hostile input', () {
@@ -123,19 +128,31 @@ void main() {
         expect(reassembler.bufferedBytes, 0);
       });
 
-      test('a peer that never completes a frame cannot grow the buffer past '
-          'the cap', () {
-        // Declare the largest legal frame, then dribble bytes forever.
+      test('a peer that never completes a frame is cut off at the cap', () {
+        // Declare the largest legal frame, then dribble bytes forever. The
+        // buffer stays bounded the whole way, and the moment the peer would
+        // push it past one maximal frame the stream is rejected outright.
         final reassembler = FrameReassembler()
           ..addChunk(_header(PeerMessage.maxFrameBytes));
-        for (var i = 0; i < 200; i++) {
-          reassembler.addChunk(List<int>.filled(100, 0));
-        }
 
+        var chunksAccepted = 0;
         expect(
-          reassembler.bufferedBytes,
-          lessThanOrEqualTo(PeerMessage.maxFrameBytes + frameHeaderBytes),
+          () {
+            for (var i = 0; i < 1000; i++) {
+              reassembler.addChunk(List<int>.filled(100, 0));
+              chunksAccepted++;
+              expect(
+                reassembler.bufferedBytes,
+                lessThanOrEqualTo(
+                  PeerMessage.maxFrameBytes + frameHeaderBytes,
+                ),
+              );
+            }
+          },
+          throwsA(isA<FrameProtocolError>()),
         );
+        expect(chunksAccepted, lessThan(1000));
+        expect(reassembler.bufferedBytes, 0);
       });
 
       test('resets its buffer before reporting a protocol error', () {

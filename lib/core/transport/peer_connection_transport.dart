@@ -10,21 +10,28 @@ import 'package:flutter/foundation.dart';
 /// [PeerConnection] and validates everything coming back.
 ///
 /// This class is where golden rule #2 is actually enforced. Inbound bytes pass
-/// four gates before a game ever sees them:
+/// five gates before a game ever sees them:
 ///
 /// 1. **Reassembly** — chunks are rejoined into frames, with the peer's declared
 ///    length bounded so it cannot drive an allocation (ADR-0010).
 /// 2. **Validation** — every frame goes through [PeerMessage.fromWire]; a throw
 ///    means a hostile or garbage frame and the frame is dropped.
-/// 3. **Identity** — the first valid frame pins the peer's `senderId`; frames
-///    claiming a different sender are dropped. There is exactly one legitimate
-///    remote sender in a two-device session.
-/// 4. **Replay** — `seq` must strictly increase; replayed or reordered frames
+/// 3. **Vocabulary** — the type must be one ADR-0005 defines. An unknown type
+///    is dropped here so it can never reach game logic.
+/// 4. **Identity** — the first valid frame pins the peer's `senderId`; frames
+///    claiming a different sender (or the local device's own id) are dropped.
+///    There is exactly one legitimate remote sender in a two-device session.
+/// 5. **Replay** — `seq` must strictly increase; replayed or reordered frames
 ///    are dropped (#29).
 ///
-/// A frame failing 2–4 is dropped silently and the session continues. A framing
+/// A frame failing 2–5 is dropped silently and the session continues. A framing
 /// violation (gate 1) is different: it means the byte boundaries themselves are
 /// untrustworthy, so the session is torn down.
+///
+/// Outbound frames are **serialized**: a frame's chunks share one ordered
+/// stream with every other frame's, so two overlapping `send` calls interleaving
+/// their chunks would corrupt the stream and — per gate 1 — kill the session.
+/// Each send therefore queues behind the last.
 class PeerConnectionTransport implements PeerTransport {
   /// Wrap an already-connected [connection]. [localPeerId] must satisfy
   /// [PeerMessage]'s id pattern — it is stamped onto every outbound frame.
@@ -52,10 +59,14 @@ class PeerConnectionTransport implements PeerTransport {
   StreamSubscription<Uint8List>? _bytesSub;
   StreamSubscription<PeerConnectionState>? _stateSub;
 
+  /// Tail of the outbound write chain; every send appends to it.
+  Future<void> _writes = Future<void>.value();
+
   int _outboundSeq = 0;
   String? _peerId;
   int _lastAcceptedSeq = -1;
   bool _closed = false;
+  int _droppedFrames = 0;
 
   @override
   String get localPeerId => _localPeerId;
@@ -69,14 +80,13 @@ class PeerConnectionTransport implements PeerTransport {
   @override
   PeerConnectionState get state => _connection.state;
 
-  /// Number of inbound frames rejected by gates 2–4, for diagnostics and the
+  /// Number of inbound frames rejected by gates 2–5, for diagnostics and the
   /// smoke-test runbook (#26). A steadily climbing count on a healthy link
   /// means the two devices disagree about the protocol.
   int get droppedFrameCount => _droppedFrames;
-  int _droppedFrames = 0;
 
   @override
-  Future<void> send(MessageType type, Map<String, Object?> payload) async {
+  Future<void> send(MessageType type, Map<String, Object?> payload) {
     if (_closed || _connection.state != PeerConnectionState.connected) {
       throw const PeerConnectionClosed('cannot send on a closed transport');
     }
@@ -86,6 +96,21 @@ class PeerConnectionTransport implements PeerTransport {
       seq: _outboundSeq++,
       payload: payload,
     );
+    // Chain onto the previous write so this frame's chunks stay contiguous.
+    // `_writes` must never carry an error forward, or one failed send would
+    // poison every later one.
+    final queued = _writes.then((_) => _writeFrame(message));
+    _writes = queued.catchError((Object _) {});
+    return queued;
+  }
+
+  Future<void> _writeFrame(PeerMessage message) async {
+    if (_closed || _connection.state != PeerConnectionState.connected) {
+      throw const PeerConnectionClosed(
+        'link dropped before the frame was '
+        'written',
+      );
+    }
     final chunks = chunkFrame(
       message.toWire(),
       maxChunkBytes: _connection.maxChunkBytes,
@@ -110,6 +135,10 @@ class PeerConnectionTransport implements PeerTransport {
   }
 
   void _onBytes(Uint8List chunk) {
+    // The session may already have been declared compromised; teardown is
+    // asynchronous, so bytes must not slip through the gap.
+    if (_closed) return;
+
     final List<Uint8List> frames;
     try {
       frames = _reassembler.addChunk(chunk);
@@ -125,13 +154,24 @@ class PeerConnectionTransport implements PeerTransport {
     }
   }
 
-  /// Runs gates 2–4. Returns null for a frame that must not reach game code.
+  /// Runs gates 2–5. Returns null for a frame that must not reach game code.
   PeerMessage? _accept(Uint8List frame) {
     final PeerMessage message;
     try {
       message = PeerMessage.fromWire(frame);
-    } on PeerMessageError catch (error) {
-      _drop('malformed frame: ${error.reason}');
+    } on PeerMessageError {
+      _drop();
+      return null;
+    }
+
+    if (MessageType.tryParse(message.type) == null) {
+      _drop();
+      return null;
+    }
+
+    if (message.senderId == _localPeerId) {
+      // Nothing legitimate claims this device's own id.
+      _drop();
       return null;
     }
 
@@ -139,24 +179,36 @@ class PeerConnectionTransport implements PeerTransport {
     if (knownPeer == null) {
       _peerId = message.senderId;
     } else if (message.senderId != knownPeer) {
-      _drop('frame from an unexpected sender');
+      _drop();
       return null;
     }
 
     if (message.seq <= _lastAcceptedSeq) {
-      _drop('replayed or reordered frame (seq ${message.seq})');
+      _drop();
       return null;
     }
     _lastAcceptedSeq = message.seq;
     return message;
   }
 
-  void _drop(String reason) {
+  /// Count a rejected frame.
+  ///
+  /// Deliberately does not log per frame. A hostile peer can produce rejects
+  /// as fast as it can write, and Flutter's `debugPrint` queues into an
+  /// unbounded buffer that drains at ~1 KB/s — so a log line per dropped frame
+  /// is itself a remote memory-exhaustion vector. The count is the signal;
+  /// milestones are logged in debug builds only.
+  void _drop() {
     _droppedFrames++;
-    // Dropped frames are expected in the presence of a hostile or buggy peer;
-    // they are a diagnostic signal, never an error the game has to handle.
-    debugPrint('PeerConnectionTransport: dropped frame — $reason');
+    if (kDebugMode && _isLogMilestone(_droppedFrames)) {
+      debugPrint(
+        'PeerConnectionTransport: $_droppedFrames inbound frames dropped',
+      );
+    }
   }
+
+  static bool _isLogMilestone(int count) =>
+      count == 1 || count == 10 || count == 100 || count % 1000 == 0;
 
   void _onStreamError(Object error, StackTrace stackTrace) => _fail(error);
 

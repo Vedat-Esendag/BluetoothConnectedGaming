@@ -2,10 +2,11 @@ import 'dart:convert';
 
 import 'package:bluetooth_connected_gaming/core/peer_message.dart';
 import 'package:bluetooth_connected_gaming/core/transport/frame_codec.dart';
-import 'package:bluetooth_connected_gaming/core/transport/loopback_peer_connection.dart';
 import 'package:bluetooth_connected_gaming/core/transport/peer_connection.dart';
 import 'package:bluetooth_connected_gaming/core/transport/peer_connection_transport.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/loopback_peer_connection.dart';
 
 /// Raw frame bytes for a message the transport would never build itself —
 /// used to feed replays, spoofed senders, and garbage at the inbound gates.

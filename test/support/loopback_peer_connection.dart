@@ -1,7 +1,7 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:bluetooth_connected_gaming/core/transport/peer_connection.dart';
-import 'package:flutter/foundation.dart';
 
 /// An in-process [PeerConnection] pair (#11): whatever one side sends arrives on
 /// the other side's [incomingBytes].
@@ -13,6 +13,10 @@ import 'package:flutter/foundation.dart';
 /// so disconnect handling (#28) is testable too.
 ///
 /// Create a connected pair with [LoopbackPeerConnection.pair].
+///
+/// Lives under `test/` rather than `lib/`: it is a test double, and a class
+/// that can inject arbitrary bytes into a `PeerConnection` has no business in
+/// a release build.
 class LoopbackPeerConnection implements PeerConnection {
   LoopbackPeerConnection._({
     required this.peerId,
@@ -100,7 +104,6 @@ class LoopbackPeerConnection implements PeerConnection {
 
   /// Push a raw chunk onto this side's inbound stream without a peer sending
   /// it — for feeding hostile or malformed bytes at the transport.
-  @visibleForTesting
   void injectIncoming(List<int> bytes) => _deliver(Uint8List.fromList(bytes));
 
   @override

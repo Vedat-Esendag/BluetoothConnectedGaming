@@ -53,8 +53,10 @@ class BluetoothLowEnergyHost implements BleHost {
   final StreamController<PeerConnection> _connections =
       StreamController<PeerConnection>.broadcast();
 
-  final Map<String, _HostPeerConnection> _live =
-      <String, _HostPeerConnection>{};
+  /// The one joiner this host is serving. NearPlay is a two-device game, so a
+  /// second central has nothing to join and is disconnected on arrival.
+  _HostPeerConnection? _joiner;
+  String? _joinerId;
 
   StreamSubscription<ble.GATTCharacteristicNotifyStateChangedEventArgs>?
   _notifySub;
@@ -126,16 +128,29 @@ class BluetoothLowEnergyHost implements BleHost {
   }
 
   @override
+  Future<void> stopAccepting() async {
+    await stopAdvertising();
+    // Removing the service is what actually stops the GATT server serving a
+    // central that already knows this device's address; stopping the
+    // advertisement alone does not.
+    try {
+      await _manager.removeAllServices();
+    } on Object catch (error) {
+      debugPrint('BluetoothLowEnergyHost: removeAllServices failed — $error');
+    }
+  }
+
+  @override
   Future<void> dispose() async {
     await stopAdvertising();
     await _notifySub?.cancel();
     await _writeSub?.cancel();
     await _connectionSub?.cancel();
     await _mtuSub?.cancel();
-    for (final connection in _live.values.toList()) {
-      await connection.close();
-    }
-    _live.clear();
+    final joiner = _joiner;
+    _joiner = null;
+    _joinerId = null;
+    await joiner?.close();
     try {
       await _manager.removeAllServices();
     } on Object catch (error) {
@@ -157,14 +172,34 @@ class BluetoothLowEnergyHost implements BleHost {
       }
     });
 
-    _writeSub ??= _manager.characteristicWriteRequested.listen((event) async {
+    _writeSub ??= _manager.characteristicWriteRequested.listen((event) {
       final id = event.central.uuid.toString();
-      final connection = _live[id];
-      // Always answer the request — an unanswered write stalls the joiner's
-      // ordered stream, which the framing layer depends on.
-      await _respond(event.request);
-      if (event.characteristic.uuid != _inputCharacteristic.uuid) return;
-      connection?.deliver(event.request.value);
+
+      if (event.characteristic.uuid != _inputCharacteristic.uuid) {
+        // Nothing else on this service is writable.
+        unawaited(_rejectWrite(event.request, ble.GATTError.writeNotPermitted));
+        return;
+      }
+      if (event.request.offset != 0) {
+        // Frames are a byte stream, not an addressable value: a long write at
+        // an offset would be reassembled as if it were the next chunk.
+        unawaited(_rejectWrite(event.request, ble.GATTError.invalidOffset));
+        return;
+      }
+      if (id != _joinerId) {
+        unawaited(
+          _rejectWrite(event.request, ble.GATTError.insufficientAuthorization),
+        );
+        return;
+      }
+
+      // Deliver *before* awaiting anything. Stream listeners do not await the
+      // future they return, so two write events would otherwise race and
+      // deliver in whatever order their platform round-trips resolved —
+      // reordering chunks and corrupting the framed stream (ADR-0010).
+      _joiner?.deliver(event.request.value);
+      // Answer separately: an unanswered write stalls the joiner.
+      unawaited(_respond(event.request));
     });
 
     _connectionSub ??= _manager.connectionStateChanged.listen((event) {
@@ -174,27 +209,51 @@ class BluetoothLowEnergyHost implements BleHost {
     });
 
     _mtuSub ??= _manager.mtuChanged.listen((event) {
-      _live[event.central.uuid.toString()]?.updateMtu(event.mtu);
+      if (event.central.uuid.toString() != _joinerId) return;
+      _joiner?.updateMtu(event.mtu);
     });
   }
 
   void _onJoinerReady(ble.Central central, String id) {
-    if (_live.containsKey(id)) return;
+    if (id == _joinerId) return;
+    if (_joiner != null) {
+      // Already playing someone. Stopping advertising does not stop the GATT
+      // server accepting a central that saw an earlier advertisement, so the
+      // refusal has to be enforced here.
+      unawaited(_disconnectCentral(central));
+      return;
+    }
+
     final connection = _HostPeerConnection(
       manager: _manager,
       central: central,
       stateCharacteristic: _stateCharacteristic,
-      onClosed: () => _live.remove(id),
+      onClosed: () {
+        if (_joinerId != id) return;
+        _joiner = null;
+        _joinerId = null;
+      },
     );
-    _live[id] = connection;
+    _joiner = connection;
+    _joinerId = id;
     unawaited(connection.refreshNotifyLength());
     if (!_connections.isClosed) _connections.add(connection);
   }
 
   Future<void> _dropCentral(String id) async {
-    final connection = _live.remove(id);
-    if (connection == null) return;
-    await connection.close();
+    if (id != _joinerId) return;
+    final connection = _joiner;
+    _joiner = null;
+    _joinerId = null;
+    await connection?.close();
+  }
+
+  Future<void> _disconnectCentral(ble.Central central) async {
+    try {
+      await _manager.disconnect(central);
+    } on Object catch (error) {
+      debugPrint('BluetoothLowEnergyHost: refusing a central failed — $error');
+    }
   }
 
   Future<void> _respond(ble.GATTWriteRequest request) async {
@@ -202,6 +261,17 @@ class BluetoothLowEnergyHost implements BleHost {
       await _manager.respondWriteRequest(request);
     } on Object catch (error) {
       debugPrint('BluetoothLowEnergyHost: respondWriteRequest failed — $error');
+    }
+  }
+
+  Future<void> _rejectWrite(
+    ble.GATTWriteRequest request,
+    ble.GATTError error,
+  ) async {
+    try {
+      await _manager.respondWriteRequestWithError(request, error: error);
+    } on Object catch (failure) {
+      debugPrint('BluetoothLowEnergyHost: rejecting a write failed — $failure');
     }
   }
 }

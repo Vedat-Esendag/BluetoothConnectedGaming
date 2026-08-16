@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bluetooth_connected_gaming/core/display_name.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_readiness_mapping.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_scanner.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/gatt_contract.dart';
@@ -68,7 +69,12 @@ class BluetoothLowEnergyScanner implements BleScanner {
           controller.add(
             DiscoveredHost(
               id: id,
-              name: event.advertisement.name ?? '',
+              // An advertised name comes from an unauthenticated device that
+            // has not connected yet — it never reaches a widget unscrubbed.
+            name: sanitizeDisplayName(
+              event.advertisement.name,
+              fallback: '',
+            ),
               rssi: event.rssi,
             ),
           );

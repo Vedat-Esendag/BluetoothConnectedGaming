@@ -61,9 +61,17 @@ abstract class BleHost {
   /// the lobby takes the first and stops advertising.
   Stream<PeerConnection> get connections;
 
-  /// Stop advertising and remove the published service. Existing connections
-  /// stay up.
+  /// Stop advertising. Existing connections stay up, and the GATT service
+  /// stays published — see [stopAccepting].
   Future<void> stopAdvertising();
+
+  /// Stop advertising *and* stop serving new joiners.
+  ///
+  /// Called once a joiner has been accepted. Stopping the advertisement alone
+  /// is not enough: a central that saw an earlier advertisement still knows
+  /// this device's address and can connect to a published GATT service, so
+  /// closing the session to newcomers means withdrawing the service too.
+  Future<void> stopAccepting();
 
   /// Stop advertising, drop any connected joiner, and release resources.
   Future<void> dispose();

@@ -79,3 +79,30 @@ id means a spoofed or crossed frame.
 - A dropped or corrupted chunk desynchronises the stream permanently. BLE's
   link-layer reliability is what rules this out; it is an assumption, and the
   smoke-test runbook (#26) is where it gets checked against real radios.
+
+## Addendum (2026-08-16): limits a security audit surfaced
+
+Recorded so they are known trade-offs rather than oversights.
+
+- **Replay protection is scoped to one connection.** `lastSeq` and the pinned
+  peer id live for the lifetime of one transport, and a transport is built per
+  `PeerConnection`. A peer that drops and reconnects therefore starts from
+  `seq = -1` with no pinned identity, so frames captured from an *earlier*
+  session can be replayed into a new one. What this buys an attacker is
+  limited: they cannot forge new frames, and the worst case is winning the race
+  to pin an identity and so denying the genuine peer — a nuisance, not a
+  takeover. Closing it properly means a per-session nonce echoed on every frame,
+  which costs bytes on every packet. Deferred deliberately; a reconnect is
+  treated as a **new game**, never a resumed one, which is what keeps the
+  window this narrow.
+- **Framing assumes an honest writer.** ADR-0010's ordering guarantee comes
+  from GATT writes *with response*. Nothing stops a hostile central issuing
+  write *commands* instead, so ordering is a peer-cooperation assumption. A
+  peer that violates it corrupts its own stream and gets the session torn down,
+  which is the intended outcome.
+- **Rejected frames are counted, not logged.** A log line per dropped frame is
+  itself a remote memory-exhaustion vector: Flutter's `debugPrint` queues into
+  an unbounded buffer that drains at roughly a kilobyte per second, so a peer
+  streaming garbage could grow that queue far faster than it empties.
+  `droppedFrameCount` is the diagnostic; milestones are logged in debug builds
+  only.

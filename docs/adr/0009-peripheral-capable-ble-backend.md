@@ -69,3 +69,26 @@ adapter exists today, so this is the cheapest this migration will ever be.
 - iOS peripheral advertising is more restricted than Android's (the local name
   and service UUID are what a backgrounded app may advertise). NearPlay hosts
   only while in the foreground, which stays inside those limits.
+
+## Addendum (2026-08-16): the link is unauthenticated, by choice
+
+The input characteristic is writable without pairing or encryption, and the
+state characteristic notifies without either. That is deliberate: requiring a
+bonded link would put an OS pairing prompt between two people who are sitting
+next to each other, which is most of the friction NearPlay exists to avoid.
+
+What follows from it, and what stands in its place:
+
+- Traffic is readable by anyone with a sniffer in range. Nothing secret travels
+  over it — ball positions and a display name.
+- Any central in range can connect and write. The transport's inbound gates
+  (ADR-0010) are what make that harmless: a stranger's frames fail identity
+  pinning and are dropped.
+- **Single occupancy is enforced at the adapter.** Stopping the advertisement
+  does *not* stop a GATT server accepting a central that already saw it, so once
+  a joiner is accepted the host withdraws the service (`stopAccepting`) and
+  refuses any further central outright. Without that, a second device could
+  connect after the lobby had moved on.
+
+If NearPlay ever carries something worth stealing, this is the decision to
+revisit — `writeEncrypted` permissions are available in the package.
