@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_scanner.dart';
-import 'package:bluetooth_connected_gaming/core/transport/ble/flutter_blue_plus_scanner.dart';
+import 'package:bluetooth_connected_gaming/core/transport/ble/bluetooth_low_energy_scanner.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/join_controller.dart';
 import 'package:flutter/material.dart';
 
@@ -24,7 +24,7 @@ class JoinScreen extends StatefulWidget {
 
 class _JoinScreenState extends State<JoinScreen> {
   late final JoinController _controller = JoinController(
-    widget.scanner ?? FlutterBluePlusScanner(),
+    widget.scanner ?? BluetoothLowEnergyScanner(),
   );
 
   @override
@@ -78,7 +78,7 @@ class _JoinScreenState extends State<JoinScreen> {
       JoinConnected(:final connection) => _status(
         icon: Icons.check_circle_outline,
         semanticsLabel: 'Connected',
-        message: 'Connected to ${connection.deviceId}.',
+        message: 'Connected to ${connection.peerId}.',
       ),
       JoinFailed(:final reason) => _failure(reason),
     };

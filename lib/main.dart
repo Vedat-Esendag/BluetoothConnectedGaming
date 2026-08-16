@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _registerGames();
-  await BluetoothService.instance.initialise();
+  await BluetoothService.instance.ensureReady();
   runApp(const BluetoothConnectedGamingApp());
 }
 

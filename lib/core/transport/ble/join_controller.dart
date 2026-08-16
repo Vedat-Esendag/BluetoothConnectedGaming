@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_scanner.dart';
+import 'package:bluetooth_connected_gaming/core/transport/peer_connection.dart';
 import 'package:flutter/foundation.dart';
 
 /// The joiner's scan -> connect flow as observable state. Sealed so the UI can
@@ -35,12 +36,12 @@ class JoinConnecting extends JoinState {
   final DiscoveredHost host;
 }
 
-/// Connected; [connection] exposes the discovered characteristics.
+/// Connected; [connection] is a live byte channel to the host.
 class JoinConnected extends JoinState {
   const JoinConnected(this.connection);
 
-  /// The established connection (provisional surface — see ADR-0006).
-  final BleConnection connection;
+  /// The established connection, ready to carry frames.
+  final PeerConnection connection;
 }
 
 /// The attempt failed for [reason]; the UI shows a message + recovery action.

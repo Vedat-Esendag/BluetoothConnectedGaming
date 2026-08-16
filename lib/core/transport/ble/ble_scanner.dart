@@ -1,6 +1,8 @@
+import 'package:bluetooth_connected_gaming/core/transport/peer_connection.dart';
+
 /// Whether the BLE stack is usable right now.
 enum BleReadiness {
-  /// Supported, powered on, and permissions granted — safe to scan.
+  /// Supported, powered on, and permissions granted — safe to scan or host.
   ready,
 
   /// The device has no BLE hardware. Dead end; no recovery.
@@ -30,24 +32,6 @@ class DiscoveredHost {
 
   /// Signal strength in dBm (higher is closer); useful for ordering.
   final int rssi;
-}
-
-/// A live connection to a host whose GATT characteristics have been discovered.
-///
-/// Deliberately minimal and **provisional** for #8: it proves a connection was
-/// established and the contract's characteristics exist, and allows teardown.
-/// The full read / write / notify surface (plus the negotiated MTU) is added by
-/// #10 when it wraps this into a `PeerConnection` — see ADR-0006. Do not build
-/// on this shape yet.
-abstract class BleConnection {
-  /// The connected device's identifier.
-  String get deviceId;
-
-  /// UUIDs of the characteristics discovered on the host's service.
-  List<String> get characteristicUuids;
-
-  /// Tear down the connection.
-  Future<void> disconnect();
 }
 
 /// Why a join attempt failed. Each value maps to a specific user-facing message
@@ -93,12 +77,11 @@ class BleException implements Exception {
 
 /// The BLE central operations the joiner (#8) needs.
 ///
-/// Mirrors why `PeerTransport` is abstract: the scan/connect *logic*
-/// (`JoinController`) depends only on this interface and is unit-tested with a
-/// mock, while the real `flutter_blue_plus` calls live in a single adapter that
-/// is validated on hardware (ADR-0006, issue #26). Implementations filter scans
-/// by `GattContract.serviceUuid` and verify the contract's characteristics on
-/// connect.
+/// The scan/connect *logic* (`JoinController`) depends only on this interface
+/// and is unit-tested with a mock, while the real radio calls live in a single
+/// adapter validated on hardware (ADR-0009, issue #26). Implementations filter
+/// scans by `GattContract.serviceUuid` and verify the contract's
+/// characteristics on connect.
 abstract class BleScanner {
   /// Check support, adapter power, and permissions — requesting permission if
   /// needed — and report the current [BleReadiness]. Callers must not scan
@@ -113,8 +96,11 @@ abstract class BleScanner {
   /// Stop an in-progress scan.
   Future<void> stopScan();
 
-  /// Connect to [deviceId], discover its services, and confirm the GATT
-  /// contract's characteristics are present. Throws a [BleException] (e.g.
+  /// Connect to [deviceId], discover the GATT contract's characteristics, and
+  /// subscribe to host notifications.
+  ///
+  /// Returns a ready-to-use byte channel: by the time this completes, frames
+  /// can flow in both directions. Throws a [BleException] (e.g.
   /// [JoinFailureReason.characteristicDiscoveryFailed]) on failure.
-  Future<BleConnection> connect(String deviceId);
+  Future<PeerConnection> connect(String deviceId);
 }

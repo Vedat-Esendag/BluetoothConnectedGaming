@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_scanner.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/join_controller.dart';
+import 'package:bluetooth_connected_gaming/core/transport/peer_connection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockBleScanner extends Mock implements BleScanner {}
 
-class _MockBleConnection extends Mock implements BleConnection {}
+class _MockPeerConnection extends Mock implements PeerConnection {}
 
 void main() {
   setUpAll(() => registerFallbackValue(Duration.zero));
@@ -123,7 +124,7 @@ void main() {
 
   group('connecting', () {
     test('success -> JoinConnected and stops scanning', () async {
-      final connection = _MockBleConnection();
+      final connection = _MockPeerConnection();
       when(() => scanner.connect(any())).thenAnswer((_) async => connection);
 
       await controller.connectToHost(hostA);
@@ -134,7 +135,7 @@ void main() {
     });
 
     test('a second connectToHost is ignored once connected', () async {
-      final connection = _MockBleConnection();
+      final connection = _MockPeerConnection();
       when(() => scanner.connect(any())).thenAnswer((_) async => connection);
 
       await controller.connectToHost(hostA);

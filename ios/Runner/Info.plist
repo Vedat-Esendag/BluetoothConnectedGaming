@@ -47,5 +47,7 @@
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>NearPlay uses Bluetooth to connect with nearby players for local multiplayer games.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>NearPlay uses Bluetooth to host a game that nearby players can join.</string>
 </dict>
 </plist>

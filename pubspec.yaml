@@ -36,7 +36,6 @@ dependencies:
   flame_forge2d: ^0.19.2+4
   flutter:
     sdk: flutter
-  flutter_blue_plus: ^2.3.8
   # Pure-Dart Box2D port. Depended on directly so the headless Pool simulation
   # imports physics without any Flame dependency (ADR-0008). flame_forge2d wraps
   # this same package for the render layer.
