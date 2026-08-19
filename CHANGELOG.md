@@ -24,6 +24,11 @@ All notable changes to this project are documented here. Format follows
 - Pool multiplayer (#14, #20, #21, #23): the host simulates and broadcasts at
   20 Hz, the client renders and sends shots, turn state gates both devices'
   controls, and the winner card names the players.
+- Real 8-ball rules (#22): group assignment on the first legal pot,
+  first-contact and rail fouls observed by a forge2d contact listener, and a
+  win condition that requires clearing your group before the 8. Ball-in-hand
+  placement, break requirements, and calling the 8-ball to a pocket remain out
+  of scope and are documented as such.
 - Coin Flip (#27), the second mini-game — proof that adding one touches nothing
   but its own folder and one line of `main.dart`.
 - A committed design-token set (colour, spacing, radius, type, motion) and a
@@ -60,6 +65,14 @@ All notable changes to this project are documented here. Format follows
   host names are scrubbed before they reach the host list.
 - A client read turn state from its own rules engine, which never advances, so
   its controls never unlocked.
+- The lobby closed the connection it had just handed to the game: handing off
+  with `pushReplacement` disposed the lobby's controller, which disposed the
+  `BleHost`, which closes the GATT link it is serving. Every hosted match would
+  have died the instant it started, invisibly to a test suite where the host is
+  a mock. The game is now pushed over the lobby, which stays mounted for the
+  match.
+- The rules engine scored pocketed balls before judging the shot, so potting
+  the last ball of your group was judged as if you were already on the 8-ball.
 - Removed `flutter_01.log`, committed by accident, and gitignored `*.log`.
 
 ### Previously in Unreleased
