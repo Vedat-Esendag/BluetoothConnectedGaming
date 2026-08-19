@@ -1,0 +1,253 @@
+import 'dart:math';
+
+import 'package:bluetooth_connected_gaming/core/display_name.dart';
+import 'package:bluetooth_connected_gaming/core/peer_message.dart';
+import 'package:bluetooth_connected_gaming/core/peer_transport.dart';
+import 'package:bluetooth_connected_gaming/core/session/handshake.dart';
+import 'package:bluetooth_connected_gaming/core/transport/peer_connection_transport.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/loopback_peer_connection.dart';
+
+void main() {
+  group('sanitizeDisplayName', () {
+    test('keeps an ordinary name unchanged', () {
+      expect(sanitizeDisplayName('Vedat', fallback: 'x'), 'Vedat');
+    });
+
+    test('falls back when the peer sends a non-string', () {
+      expect(sanitizeDisplayName(42, fallback: 'Player 2'), 'Player 2');
+      expect(sanitizeDisplayName(null, fallback: 'Player 2'), 'Player 2');
+      expect(
+        sanitizeDisplayName(<String, Object?>{}, fallback: 'Player 2'),
+        'Player 2',
+      );
+    });
+
+    test('falls back on an empty or whitespace-only name', () {
+      expect(sanitizeDisplayName('', fallback: 'Player 2'), 'Player 2');
+      expect(sanitizeDisplayName('   ', fallback: 'Player 2'), 'Player 2');
+    });
+
+    test('strips control characters that would break layout', () {
+      expect(
+        sanitizeDisplayName('Ann\na\u0000', fallback: 'x'),
+        'Anna',
+      );
+    });
+
+    test('strips bidirectional-override codepoints', () {
+      // U+202E reverses the rendering of everything after it — a classic way to
+      // make a name display as something else entirely.
+      expect(
+        sanitizeDisplayName('Ann\u202Ea', fallback: 'x'),
+        'Anna',
+      );
+      expect(
+        sanitizeDisplayName('\u200Bhidden\u2066', fallback: 'x'),
+        'hidden',
+      );
+    });
+
+    test('truncates an absurdly long name', () {
+      final name = sanitizeDisplayName('A' * 5000, fallback: 'x');
+      expect(name.length, maxDisplayNameLength);
+    });
+
+    test('a name that is only control characters falls back', () {
+      expect(
+        sanitizeDisplayName('\u0000\u202E', fallback: 'Player 2'),
+        'Player 2',
+      );
+    });
+  });
+
+  group('generatePeerId', () {
+    test('produces an id PeerMessage accepts', () {
+      final pattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
+      for (final role in PeerRole.values) {
+        expect(pattern.hasMatch(generatePeerId(role: role)), isTrue);
+      }
+    });
+
+    test('encodes the role and is unique per call', () {
+      expect(generatePeerId(role: PeerRole.host), startsWith('host-'));
+      expect(generatePeerId(role: PeerRole.client), startsWith('client-'));
+
+      final ids = <String>{
+        for (var i = 0; i < 50; i++) generatePeerId(role: PeerRole.host),
+      };
+      expect(ids.length, greaterThan(45), reason: 'ids must not collide');
+    });
+
+    test('is deterministic given a seeded random, for tests', () {
+      expect(
+        generatePeerId(role: PeerRole.host, random: Random(7)),
+        generatePeerId(role: PeerRole.host, random: Random(7)),
+      );
+    });
+  });
+
+  group('performHandshake', () {
+    late LoopbackPeerConnection hostLink;
+    late LoopbackPeerConnection clientLink;
+    late PeerConnectionTransport hostTransport;
+    late PeerConnectionTransport clientTransport;
+
+    setUp(() {
+      (hostLink, clientLink) = LoopbackPeerConnection.pair();
+      hostTransport = PeerConnectionTransport(
+        connection: hostLink,
+        localPeerId: 'host-aaaa',
+      );
+      clientTransport = PeerConnectionTransport(
+        connection: clientLink,
+        localPeerId: 'client-bbbb',
+      );
+    });
+
+    tearDown(() async {
+      await hostTransport.disconnect();
+      await clientTransport.disconnect();
+    });
+
+    test('both sides end up with a session naming the other player', () async {
+      final hostSide = performHandshake(
+        transport: hostTransport,
+        localRole: PeerRole.host,
+        localName: 'Vedat',
+      );
+      final clientSide = performHandshake(
+        transport: clientTransport,
+        localRole: PeerRole.client,
+        localName: 'Sam',
+      );
+
+      final host = await hostSide;
+      final client = await clientSide;
+
+      expect(host.isHost, isTrue);
+      expect(host.remotePlayerName, 'Sam');
+      expect(host.localPlayerName, 'Vedat');
+
+      expect(client.isHost, isFalse);
+      expect(client.remotePlayerName, 'Vedat');
+    });
+
+    test(
+      'scrubs a hostile display name before it reaches the session',
+      () async {
+        final hostSide = performHandshake(
+          transport: hostTransport,
+          localRole: PeerRole.host,
+          localName: 'Vedat',
+        );
+        final clientSide = performHandshake(
+          transport: clientTransport,
+          localRole: PeerRole.client,
+          localName: 'Sam\u202E${'!' * 200}',
+        );
+
+        final host = await hostSide;
+        await clientSide;
+
+        expect(
+          host.remotePlayerName.length,
+          lessThanOrEqualTo(
+            maxDisplayNameLength,
+          ),
+        );
+        expect(host.remotePlayerName, isNot(contains('\u202E')));
+      },
+    );
+
+    test('times out when the peer never answers', () async {
+      await expectLater(
+        performHandshake(
+          transport: hostTransport,
+          localRole: PeerRole.host,
+          localName: 'Vedat',
+          timeout: const Duration(milliseconds: 30),
+        ),
+        throwsA(
+          isA<HandshakeException>().having(
+            (e) => e.failure,
+            'failure',
+            HandshakeFailure.timedOut,
+          ),
+        ),
+      );
+    });
+
+    test('reports a role conflict when both sides claim host', () async {
+      final hostSide = performHandshake(
+        transport: hostTransport,
+        localRole: PeerRole.host,
+        localName: 'Vedat',
+      );
+      final otherHost = performHandshake(
+        transport: clientTransport,
+        localRole: PeerRole.host,
+        localName: 'Sam',
+      );
+
+      // Attach both expectations before awaiting: each side rejects, and an
+      // unwatched rejection would surface as an unhandled async error.
+      final hostFails = expectLater(
+        hostSide,
+        throwsA(
+          isA<HandshakeException>().having(
+            (e) => e.failure,
+            'failure',
+            HandshakeFailure.roleConflict,
+          ),
+        ),
+      );
+      final otherFails = expectLater(
+        otherHost,
+        throwsA(isA<HandshakeException>()),
+      );
+      await hostFails;
+      await otherFails;
+    });
+
+    test('a peer that sends no name still yields a usable session', () async {
+      final hostSide = performHandshake(
+        transport: hostTransport,
+        localRole: PeerRole.host,
+        localName: 'Vedat',
+      );
+
+      // A minimal (but well-formed) handshake with no name field at all.
+      await clientTransport.send(
+        MessageType.handshake,
+        const <String, Object?>{HandshakeKeys.role: 'client'},
+      );
+
+      expect((await hostSide).remotePlayerName, fallbackPeerName);
+    });
+
+    test('reports disconnection when the link drops mid-handshake', () async {
+      final hostSide = performHandshake(
+        transport: hostTransport,
+        localRole: PeerRole.host,
+        localName: 'Vedat',
+      );
+
+      await pumpEventQueue();
+      await clientTransport.disconnect();
+      await hostTransport.disconnect();
+
+      await expectLater(
+        hostSide,
+        throwsA(
+          isA<HandshakeException>().having(
+            (e) => e.failure,
+            'failure',
+            HandshakeFailure.disconnected,
+          ),
+        ),
+      );
+    });
+  });
+}

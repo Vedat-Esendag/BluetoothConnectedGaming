@@ -1,9 +1,10 @@
 import 'package:bluetooth_connected_gaming/core/mini_game.dart';
 import 'package:bluetooth_connected_gaming/core/peer_transport.dart';
+import 'package:bluetooth_connected_gaming/games/pool/pool_game_widget.dart';
 import 'package:flutter/material.dart';
 
-/// Stub descriptor for Pool. Demonstrates the module contract; the Flame game
-/// and forge2d physics will live alongside this file as they're built.
+/// Descriptor for Pool. The headless simulation, rules, rendering and the
+/// network binding all live alongside this file (ADR-0008).
 class PoolDescriptor implements MiniGameDescriptor {
   const PoolDescriptor();
 
@@ -24,9 +25,8 @@ class PoolDescriptor implements MiniGameDescriptor {
 
   @override
   Widget build(BuildContext context, {GameSession? session}) {
-    // TODO(pool): return the Flame GameWidget hosting the pool simulation.
-    // Host runs forge2d and broadcasts ball transforms (ADR-0003);
-    // client sends shot inputs and renders received state.
-    return const Center(child: Text('Pool — coming soon'));
+    // One widget covers all three modes: with no session it is local
+    // pass-and-play, with one it is host or client (ADR-0003, ADR-0008).
+    return PoolGameWidget(session: session);
   }
 }

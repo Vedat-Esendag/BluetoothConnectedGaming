@@ -29,3 +29,6 @@ pubspec.lock  # app: keep OR ignore per preference; ignored here, commit if you 
 
 # Coverage
 coverage/
+
+# Stray tool logs
+*.log

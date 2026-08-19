@@ -24,6 +24,11 @@ jobs:
       - name: Run tests
         run: flutter test --coverage
 
+      # Fails when a feature lands with no tests (#25). The floor lives in the
+      # script so it is reviewable in a diff rather than buried in YAML.
+      - name: Check coverage floor
+        run: dart run tool/check_coverage.dart
+
   build-android:
     name: Build Android (debug)
     runs-on: ubuntu-latest
