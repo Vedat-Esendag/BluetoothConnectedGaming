@@ -1,158 +1,87 @@
 # NearPlay — Development Roadmap
 
-Issue dependency map and critical path from scaffold to Pool being playable.  
 Live tracker: https://github.com/Vedat-Esendag/BluetoothConnectedGaming/issues
 
 ---
 
-## Critical Path (13 steps, M1 → M2)
+## Where we are
 
-Every link must complete before the next can start:
+**M1 (transport) and M2 (Pool) are done.** The critical path that this document
+used to chart — from "undecided transport" to "Pool is playable" — has been
+walked end to end: two devices discover each other over BLE, hand-shake into a
+session, and play a real game of 8-ball with the host simulating and the client
+rendering.
+
+The one caveat that outranks everything else below:
+
+> **The BLE adapters have never run on a radio.** They type-check and the whole
+> stack above them is tested over a loopback link, but no code here has actually
+> advertised or scanned on hardware. `docs/testing/bluetooth-smoke-test.md` is
+> the gate, and it needs two phones — ideally one Android and one iOS.
+
+### The critical path, as walked
 
 ```
-#15 → #5+#12 → #7 → #8 → #9 → #10 → #29+#16 → #13 → #17 → #19 → #22 → #23
+#15 (ADR) → #12 (codec) → #7+#8 (host + joiner) → #9 (bytes) → #10 (PeerConnection)
+  → #29+#16 (replay + transport) → #13 (handshake) → #17 (session wiring)
+  → #19 (simulation) → #20+#21 (input + rendering) → #22 (rules) → #23 (win screen)
 ```
 
----
+Two things the original plan did not anticipate:
 
-## Dependency Graph
-
-```
-#15 (ADR-0002) ──── DECISION GATE — resolve before writing any transport code
-    │
-    ├── #5  (permissions) ── #7 (GATT server) ─┐
-    │                        #8 (scan+connect) ─┴──► #9 (raw bytes) ──► #10 (PeerConnection)
-    │                                                                          │
-    │                                                                    ┌─────┴──────┐
-    │                                                                    ▼            ▼
-    ├── #12 (codec) ─────────────────────────────────────────────► #11 (loopback)  #29 (replay)
-    │                                                                                │
-    │                                                                    ┌───────────┘
-    │                                                                    ▼
-    │                                                               #16 (PeerTransport impl)
-    │                                                                    │
-    │                                                          ┌─────────┴──────────┐
-    │                                                          ▼                    ▼
-    │                                                     #13 (handshake)    #26 (smoke test)
-    │                                                          │              #28 (reconnect)
-    │                                                     ┌────┘
-    ├── #6  (host/join screen) ──────────────────────────►│
-    │                                                     ▼
-    │                                               #17 (GameSession wiring)
-    │                                                     │
-    │                                          ┌──────────┘
-    │                                          ▼
-    │                                    #19 (Pool simulation)
-    │                                          │
-    │                               ┌──────────┼──────────┐
-    │                               ▼          ▼          ▼
-    │                          #20 (input)  #21 (render)  │
-    │                                          │           │
-    │                                          └─────┬─────┘
-    │                                                ▼
-    │                                          #22 (rules engine)
-    │                                                │
-    │                                                ▼
-    │                                          #23 (win/loss screen)
-    │
-    ├── #18 (display name) ── leaf, anytime
-    ├── #24 (registry tests) ─ leaf, anytime
-    └── #25 (CI coverage) ──── leaf, add after #22 ships with its tests
-```
+- **#7 was blocked by the dependency, not by effort.** `flutter_blue_plus` is
+  central-role only — it cannot advertise or run a GATT server — so the host
+  half was impossible until the backend was swapped (ADR-0009). Everything
+  downstream was waiting on a package that structurally could not do the job.
+- **Framing had to be invented.** ADR-0006 deferred the MTU problem to #9; it
+  turned out to need its own chunking protocol and a bounded reassembler, which
+  is ADR-0010.
 
 ---
 
-## Phase Map
+## What is left
 
-### Phase 0 — Decision Gate
-Must resolve before any BLE code is written.
+### Needs hardware
+- **#26 smoke test** — the runbook exists and is written; it has not been *run*.
+  Nothing else in this list should be trusted until it passes.
 
-| Issue | Title | Status |
-|-------|-------|--------|
-| **#15** | Confirm transport strategy (ADR-0002 + ADR-0006) | Ready |
+### Pool, beyond the MVP rules
+The rules engine covers group assignment, first-contact fouls, the rail
+requirement, and the win condition. Deliberately still simplified:
+- **Ball-in-hand placement.** A foul sets the `ballInHand` flag, but the cue
+  ball respawns at the head spot instead of being placed by the incoming
+  player. This is a UI feature (drag the cue ball to a legal spot), not a
+  missing rule.
+- **The break** is treated as an ordinary shot — no "four balls to a cushion"
+  requirement, no re-rack.
+- **Calling the 8-ball** to a pocket is not required.
 
-### Phase 1 — Foundation (parallelizable once #15 is decided)
+### Session robustness
+- **Reconnect.** A dropped link currently ends the game. Resuming would need a
+  session identity that survives the connection, because replay protection is
+  scoped to one transport (ADR-0010 addendum) — so this is a protocol change,
+  not a UI one.
+- **Persistence.** Names and paired peers are in-memory only; adding storage is
+  a dependency decision and needs its own ADR.
 
-| Issue | Title | Blocks |
-|-------|-------|--------|
-| **#5** | Bluetooth permissions | #7, #8 |
-| **#12** | Message encode/decode (codec) | #11, #13, #14, #16 |
-| **#18** | Fix display name placeholder | nothing |
-| **#24** | MiniGameRegistry unit tests | nothing |
-
-### Phase 2 — BLE Stack (sequential)
-
-| Issue | Title | Blocked by | Blocks |
-|-------|-------|------------|--------|
-| **#7** | GATT server (host) | #15, #5 | #9 |
-| **#8** | Scan + connect (joiner) | #15, #5 | #9 |
-| **#9** | Exchange raw bytes | #7, #8 | #10 |
-| **#10** | PeerConnection wrapper | #9 | #11, #16, #29 |
-
-### Phase 3 — Transport Layer
-Build #11 (loopback) alongside #16 so M2 Pool logic can be developed without two phones.
-
-| Issue | Title | Blocked by | Blocks |
-|-------|-------|------------|--------|
-| **#11** | Loopback test double | #10, #12 | enables all M2 testing without hardware |
-| **#29** | Replay protection (seq tracking) | #10 | #16 |
-| **#16** | Concrete PeerTransport impl | #10, #12, #29 | #13, #17, #26, #28 |
-
-### Phase 4 — Shell Integration
-
-| Issue | Title | Blocked by | Blocks |
-|-------|-------|------------|--------|
-| **#6** | Host/join screen | none | #17 |
-| **#13** | Handshake + role assignment | #16 | #14, #17 |
-| **#14** | State sync (Pool-scoped, see ADR-0003) | #13, #16 | #21 |
-| **#17** | Wire GameSession into game.build() | #6, #13, #16 | all Pool issues |
-
-### Phase 5 — Pool Game (M2)
-
-| Issue | Title | Blocked by | Blocks |
-|-------|-------|------------|--------|
-| **#19** | Flame widget + forge2d simulation | #17 | #20, #21, #22 |
-| **#20** | Shot input (aim + fire) | #19, #16 | — |
-| **#21** | Client rendering (receive + render host state) | #19, #16, #14 | #22 |
-| **#22** | Rules engine (8-ball logic) | #19, #21 | #23 |
-| **#23** | Win/loss screen + rematch | #22, #17 | — |
-| **#28** | Disconnect/reconnect flow | #16, #17 | — |
-
-### Phase 6 — Quality and M3
-
-| Issue | Title | Notes |
-|-------|-------|-------|
-| **#25** | CI coverage threshold | Add after #22 ships — meaningless at 0% game coverage |
-| **#26** | Bluetooth smoke-test runbook | Write after #16 ships — can't validate before then |
-| **#27** | Second mini-game (M3) | After Pool proves the module contract |
-| **#37** | BLE debug/test strategy | Research done — `docs/testing-ble.md` + ADR-0007; informs #11/#16/#26 |
+### Nice to have
+- A third mini-game. The registry contract is proven by Coin Flip (#27), so
+  this is now genuinely additive.
+- Delta compression for `state` frames, if the smoke test shows the 20 Hz full
+  snapshot is too heavy on a real link. Measure before optimising.
 
 ---
 
-## What to Work on Right Now
+## Architecture reference
 
-1. **#15** — confirm transport library, record ADR-0002 + ADR-0006 (half-day; unlocks 7+ issues)
-2. **#12** — message codec (zero dependencies; can start today)
-3. **#18** — fix display name (5 minutes; leaf issue)
-4. **#24** — MiniGameRegistry tests (pure Dart, ~1 hour; leaf issue)
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the layer map, and `docs/adr/` for
+the decisions. The load-bearing ones:
 
----
-
-## Effort Notes
-
-| Issue | Warning |
-|-------|---------|
-| **#19** | Budget 2–3× estimate. CLAUDE.md requires a forge2d determinism test ("same inputs → same state") — getting bit-identical physics output is non-trivial. |
-| **#12** | Don't over-engineer before #15 closes. Wire format may need adjustment depending on the transport backend. |
-| **#14** | Scope to Pool only (ADR-0003 model). Do **not** build a general-purpose turn system. |
-| **#11** | Build this alongside #16, not before. The interface may shift while #12 and #10 are being built. |
-
----
-
-## Milestone Summary
-
-| Milestone | Issues | Exit Criteria |
-|-----------|--------|---------------|
-| **M1: Transport Live** | #5, #7–#16, #26, #29 | Two phones exchange PeerMessages over Bluetooth |
-| **M2: Pool Playable** | #6, #17–#23, #25, #28 | Full 8-ball game, host-authoritative, no server |
-| **M3: Architecture Validated** | #27 | Second game added with zero changes to existing code |
+| ADR | Decision |
+|---|---|
+| 0002 | Raw BLE, for cross-OS play |
+| 0003 | Host-authoritative state |
+| 0006 | The GATT profile both roles share |
+| 0009 | `bluetooth_low_energy` for both central and peripheral |
+| 0010 | Frame chunking, bounded reassembly, replay protection |
+| 0011 | Session lifecycle; discovery lives in the lobby, not the transport |

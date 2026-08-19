@@ -77,7 +77,7 @@ class BleException implements Exception {
 
 /// The BLE central operations the joiner (#8) needs.
 ///
-/// The scan/connect *logic* (`JoinController`) depends only on this interface
+/// The scan/connect *logic* (`LobbyController`) depends only on this interface
 /// and is unit-tested with a mock, while the real radio calls live in a single
 /// adapter validated on hardware (ADR-0009, issue #26). Implementations filter
 /// scans by `GattContract.serviceUuid` and verify the contract's

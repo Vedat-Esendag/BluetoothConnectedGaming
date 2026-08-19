@@ -59,6 +59,12 @@ abstract class BleHost {
   ///
   /// Emits at most one connection per joiner. NearPlay is a two-device game, so
   /// the lobby takes the first and stops advertising.
+  ///
+  /// **The host keeps serving an emitted connection until it is closed.** Its
+  /// GATT service must stay published and its platform subscriptions alive for
+  /// as long as the match lasts, so whoever holds a `BleHost` must outlive the
+  /// session it produced — [dispose] closes the connection along with
+  /// everything else.
   Stream<PeerConnection> get connections;
 
   /// Stop advertising. Existing connections stay up, and the GATT service

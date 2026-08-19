@@ -63,6 +63,15 @@ class LoopbackPeerConnection implements PeerConnection {
   LoopbackPeerConnection? _remote;
   PeerConnectionState _state;
 
+  /// Chunks that arrived before anything was listening.
+  ///
+  /// A broadcast stream drops those on the floor; a real BLE link does not —
+  /// the platform buffers until the app reads. Without this the double would
+  /// invent a race that hardware does not have, and tests would be written
+  /// around a fiction.
+  final List<Uint8List> _pending = <Uint8List>[];
+  bool _hasListener = false;
+
   /// Every chunk this side has sent, in order — lets a test assert on the wire
   /// bytes rather than only on what was decoded.
   final List<Uint8List> sentChunks = <Uint8List>[];
@@ -74,7 +83,19 @@ class LoopbackPeerConnection implements PeerConnection {
   Stream<PeerConnectionState> get stateChanges => _stateChanges.stream;
 
   @override
-  Stream<Uint8List> get incomingBytes => _incoming.stream;
+  Stream<Uint8List> get incomingBytes {
+    if (!_hasListener) {
+      _hasListener = true;
+      // Flush after the caller has actually subscribed.
+      scheduleMicrotask(() {
+        for (final chunk in _pending) {
+          if (!_incoming.isClosed) _incoming.add(chunk);
+        }
+        _pending.clear();
+      });
+    }
+    return _incoming.stream;
+  }
 
   @override
   int get maxChunkBytes => _maxChunkBytes;
@@ -118,6 +139,10 @@ class LoopbackPeerConnection implements PeerConnection {
 
   void _deliver(Uint8List chunk) {
     if (_incoming.isClosed) return;
+    if (!_hasListener) {
+      _pending.add(chunk);
+      return;
+    }
     _incoming.add(chunk);
   }
 

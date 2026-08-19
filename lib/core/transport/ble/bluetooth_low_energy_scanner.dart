@@ -13,7 +13,7 @@ import 'package:flutter/foundation.dart';
 /// package.
 ///
 /// **Not unit-tested**: it talks to hardware. The scan/connect *logic* it
-/// serves lives in `JoinController`, which is fully tested against a mock; what
+/// serves lives in `LobbyController`, which is fully tested against a mock; what
 /// is left here is platform-call sequencing, validated on real devices per the
 /// #26 smoke-test runbook.
 class BluetoothLowEnergyScanner implements BleScanner {

@@ -54,6 +54,11 @@ class PoolGame extends FlameGame {
   /// host instead of applied locally. Null for a local or host game.
   ValueChanged<ShotCommand>? onShotRequested;
 
+  /// Called on the host when the game is restarted, so the reset frame is sent
+  /// even though the rules state may be identical to the one already
+  /// broadcast.
+  VoidCallback? onGameReset;
+
   PoolSimulation _sim;
   PoolRulesEngine _rules;
 
@@ -153,6 +158,7 @@ class PoolGame extends FlameGame {
     _pocketedBeforeShot = const <int>{};
     _lastSnapshot = _sim.snapshot();
     stateNotifier.value = _rules.state;
+    onGameReset?.call();
     _publish();
   }
 

@@ -42,7 +42,9 @@ class PoolNetworkBinding {
     );
 
     if (_session.isHost) {
-      _game.onAuthoritativeState = _onHostState;
+      _game
+        ..onAuthoritativeState = _onHostState
+        ..onGameReset = () => _forceNextBroadcast = true;
     } else {
       _game.onShotRequested = _onClientShot;
     }
@@ -62,6 +64,7 @@ class PoolNetworkBinding {
 
   DateTime? _lastBroadcast;
   PoolGameState? _lastBroadcastState;
+  bool _forceNextBroadcast = false;
 
   /// Live link state, so the game can show the connection-lost overlay (#28).
   ValueListenable<PeerConnectionState> get connection => _connectionNotifier;
@@ -77,9 +80,13 @@ class PoolNetworkBinding {
     final interval = Duration(microseconds: 1000000 ~/ broadcastHz);
 
     // Turn and winner changes are the frames that must not be dropped: they
-    // are what hand control to the other device.
-    final stateChanged = gameState != _lastBroadcastState;
-    if (!stateChanged && last != null && now.difference(last) < interval) {
+    // are what hand control to the other device. A rematch is forced through
+    // explicitly rather than relying on the rules state to have changed — a
+    // reset from an unplayed table produces the same state it started from,
+    // and the client would sit on a stale rack until the next tick.
+    final mustSend = _forceNextBroadcast || gameState != _lastBroadcastState;
+    _forceNextBroadcast = false;
+    if (!mustSend && last != null && now.difference(last) < interval) {
       return;
     }
 
@@ -130,8 +137,10 @@ class PoolNetworkBinding {
 
   /// Stop listening and detach from the game.
   Future<void> dispose() async {
-    _game.onAuthoritativeState = null;
-    _game.onShotRequested = null;
+    _game
+      ..onAuthoritativeState = null
+      ..onShotRequested = null
+      ..onGameReset = null;
     await _incomingSub?.cancel();
     await _connectionSub?.cancel();
     _connectionNotifier.dispose();

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bluetooth_connected_gaming/core/display_name.dart';
 import 'package:bluetooth_connected_gaming/core/mini_game.dart';
 import 'package:bluetooth_connected_gaming/core/peer_transport.dart';
+import 'package:bluetooth_connected_gaming/core/session/session_launcher.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_host.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/ble_scanner.dart';
 import 'package:bluetooth_connected_gaming/core/transport/ble/bluetooth_low_energy_host.dart';
@@ -18,7 +19,13 @@ import 'package:flutter/material.dart';
 /// downstream — advertising or scanning, connecting, the handshake — is
 /// [LobbyController]'s; this widget only renders its state and collects a name.
 class LobbyScreen extends StatefulWidget {
-  const LobbyScreen({required this.game, this.host, this.scanner, super.key});
+  const LobbyScreen({
+    required this.game,
+    this.host,
+    this.scanner,
+    this.launcher,
+    super.key,
+  });
 
   /// The game this session is for.
   final MiniGameDescriptor game;
@@ -28,6 +35,10 @@ class LobbyScreen extends StatefulWidget {
   final BleHost? host;
   final BleScanner? scanner;
 
+  /// Injectable session launcher, so a test can reach the hand-off without
+  /// standing up a second device to answer the handshake.
+  final SessionLauncher? launcher;
+
   @override
   State<LobbyScreen> createState() => _LobbyScreenState();
 }
@@ -36,6 +47,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   late final LobbyController _controller = LobbyController(
     host: widget.host ?? BluetoothLowEnergyHost(),
     scanner: widget.scanner ?? BluetoothLowEnergyScanner(),
+    launcher: widget.launcher ?? const SessionLauncher(),
   );
   final TextEditingController _nameField = TextEditingController(
     text: 'Player',
@@ -58,8 +70,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     super.dispose();
   }
 
-  /// Hand the live session to the game exactly once, and hand the lobby's
-  /// route back when the game is done with it.
+  /// Hand the live session to the game exactly once.
   void _onStateChanged() {
     final state = _controller.state;
     if (state is! LobbyReady || _handedOff) return;
@@ -67,12 +78,28 @@ class _LobbyScreenState extends State<LobbyScreen> {
     unawaited(_openGame(state.session));
   }
 
+  /// Push the game *over* the lobby rather than replacing it.
+  ///
+  /// This is load-bearing, not a navigation preference. On the host side the
+  /// radio is owned by this screen's controller, and the connection handed to
+  /// the game is the same object the `BleHost` is serving — so replacing this
+  /// route would dispose the controller, dispose the host, and close the
+  /// connection the game had just been given. The lobby therefore stays
+  /// mounted underneath for as long as the match lasts.
   Future<void> _openGame(GameSession session) async {
-    await Navigator.of(context).pushReplacement(
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => widget.game.build(context, session: session),
       ),
     );
+
+    // Back from the game — either it ended or the player navigated out of a
+    // still-live match. Either way the session is over, and saying so is what
+    // stops the peer sitting there believing the game is still running.
+    await session.transport.disconnect();
+    if (!mounted) return;
+    _handedOff = false;
+    await _controller.cancel();
   }
 
   String get _name => sanitizeDisplayName(_nameField.text, fallback: 'Player');
